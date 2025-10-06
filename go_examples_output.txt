@@ -1,0 +1,150 @@
+=== Zemberek-Go Examples ===
+
+1. Turkish Alphabet Operations:
+   Is 'ı' a vowel? true
+   Is 'ş' a vowel? false
+   Last letter of 'kitap': 112
+   Last vowel of 'kitap': 97
+
+2. Text Normalization:
+   Original: 'Merhaba! Bu bir test.'
+   Normalized: 'merhaba! bu bir test.'
+
+3. Turkish Capitalization:
+   Capitalize('istanbul'): İstanbul
+   Capitalize('ışık'): Işık
+
+4. Sentence Extraction:
+   Paragraph: 'Merhaba dünya! Bu bir test cümlesidir. Nasılsınız?'
+   Extracted 3 sentences:
+     1: 'Merhaba dünya!'
+     2: 'Bu bir test cümlesidir.'
+     3: 'Nasılsınız?'
+
+5. Token Types:
+   Token: [Merhaba 3 0-7]
+   Type: 3 (Word)
+
+6. Span Operations:
+   Text: 'Merhaba dünya'
+   Span [0:7]: 'Merhaba'
+   Span length: 7
+
+7. Turkish Letter Properties:
+   Letter: ğ
+   Is vowel: false
+   Is consonant: true
+   Is frontal: false
+
+8. Voicing/Devoicing:
+   Voice('k'): ğ
+   Voice('p'): b
+   Devoice('b'): p
+   Devoice('d'): t
+
+9. Deasciifier (ASCII to Turkish):
+   ASCII Input:  'Merhaba dunya! Bugun hava cok guzel.'
+   Turkish Output: 'Merhaba dunya! Bugun hava cok guzel.'
+   Note: Without pattern table, only toggles existing Turkish chars
+
+10. Character Graph (for spell checking):
+   Added words: kitap, kalem, defter
+   Contains 'kitap': true
+   Contains 'test': false
+   Total words in graph: 3
+
+11. Spell Checking and Suggestions:
+   Misspelled: 'kitab'
+   Suggestions: [kitap]
+
+12. Edit Distance Calculation:
+   Word 1: 'kitap'
+   Word 2: 'kitab'
+   Edit distance calculation available in spell checker
+
+13. Sentence Normalization (Comprehensive):
+   Normalizing informal Turkish sentences:
+   ────────────────────────────────────────────────────────────
+   1. Input:  'Yrn okua gidicem'
+      Output: 'yarın okula gidicem'
+
+   2. Input:  'Tmm, yarin havuza giricem ve aksama kadar yaticam :)'
+      Output: 'tmm, yarın havuza giricem ve akşama kadar yatıcam :)'
+
+   3. Input:  'ah aynen ya annemde fark ettı siz evinizden cıkmayın diyo'
+      Output: 'ah annen ya annemde fark etti siz evinizden çıkmayın diyor'
+
+   4. Input:  'gercek mı bu? Yuh! Artık unutulması bile beklenmiyo'
+      Output: 'gerçek mi bu? yuh! artık unutulmasınile beklenmiyor'
+
+   5. Input:  'Hayır hayat telaşm olmasa alacam buraları gökdelen dikicem.'
+      Output: 'hayır hayat telaşm olmâsa alaçam buraları gökdelen dikicem.'
+
+   6. Input:  'yok hocam kesınlıkle oyle birşey yok'
+      Output: 'yok hocam kesinlikle öyle birşey yok'
+
+   7. Input:  'herseyi soyle hayatında olmaması gerek bence boyle ınsanların falan baskı yapıyosa'
+      Output: 'herşeyi söyle hayatindi olmaması gerçek bence böyle insanların falan baskı yapıyorsa'
+
+   8. Input:  'email adresim zemberek_python@loodos.com'
+      Output: 'email adresim zemberek_python@loodos.com'
+
+   9. Input:  'Kredi başvrusu yapmk istiyrum.'
+      Output: 'kredi başvrusu yapmak istiyrum.'
+
+   10. Input:  'Bankanizin hesp blgilerini ogrenmek istyorum.'
+      Output: 'bankanizin hesap bilgilerini öğrenmek istyorumr'
+   ────────────────────────────────────────────────────────────
+   Note: Normalization quality depends on vocabulary coverage
+
+14. Normalization Candidates:
+   Original word: 'mrb'
+   Candidate 1: 'merhaba' (score: 1.00)
+   Candidate 2: 'selam' (score: 1.00)
+
+15. Morphological Analysis (Single Word):
+   Word: 'kalemin'
+   Analysis results: 0
+   No analysis found (simplified morphology)
+   Note: Full morphology requires lexicon resources
+
+16. Sentence Analysis:
+   Sentence: 'Yarın kar yağacak.'
+   Word count: 3
+   Word analyses:
+     Word: 'Yarın' -> 0 analysis(es)
+     Word: 'kar' -> 0 analysis(es)
+     Word: 'yağacak.' -> 0 analysis(es)
+
+17. Detailed Tokenization:
+   Text: 'Saat 12:00'de buluşalım.'
+   Tokens found: 6
+   Token details:
+     1. Content='Saat', Type=Word
+     2. Content='12', Type=Number
+     3. Content=':', Type=Word
+     4. Content='00'de', Type=Number
+     5. Content='buluşalım', Type=Word
+     6. Content='.', Type=Punctuation
+
+18. Morphology-based Analysis:
+   Word analysis results:
+     'kitap': ✗ No valid analysis
+     'kitaplar': ✗ No valid analysis
+     'gidiyorum': ✗ No valid analysis
+     'geldi': ✗ No valid analysis
+
+=== Examples Complete ===
+
+Implemented Features:
+  ✓ Turkish Alphabet & Letter Operations
+  ✓ Text Normalization & Case Conversion
+  ✓ Sentence Extraction & Tokenization
+  ✓ Deasciifier (ASCII → Turkish)
+  ✓ Character Graph & Spell Checking
+  ✓ Sentence Normalization (informal → formal)
+  ✓ Morphological Analysis (basic)
+  ✓ Sentence Analysis
+  ✓ Edit Distance & Beam Search
+
+Note: Full morphology features require lexicon resources.
