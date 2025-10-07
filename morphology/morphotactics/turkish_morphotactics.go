@@ -78,13 +78,14 @@ var (
 	Zero     = addMorpheme(NewDerivationalMorpheme("Zero", "Zero"))
 
 	// Verb morphemes
-	Caus     = addMorpheme(NewDerivationalMorpheme("Causative", "Caus"))
-	Recip    = addMorpheme(NewDerivationalMorpheme("Reciprocal", "Recip"))
-	Reflex   = addMorpheme(NewDerivationalMorpheme("Reflexive", "Reflex"))
-	Able     = addMorpheme(NewDerivationalMorpheme("Ability", "Able"))
-	Pass     = addMorpheme(NewDerivationalMorpheme("Passive", "Pass"))
+	Caus         = addMorpheme(NewDerivationalMorpheme("Causative", "Caus"))
+	Recip        = addMorpheme(NewDerivationalMorpheme("Reciprocal", "Recip"))
+	Reflex       = addMorpheme(NewDerivationalMorpheme("Reflexive", "Reflex"))
+	Able         = addMorpheme(NewDerivationalMorpheme("Ability", "Able"))
+	Pass         = addMorpheme(NewDerivationalMorpheme("Passive", "Pass"))
 	PresPart     = addMorpheme(NewDerivationalMorpheme("PresentParticiple", "PresPart"))
 	PastPart     = addMorpheme(NewDerivationalMorpheme("PastParticiple", "PastPart"))
+	Inf1         = addMorpheme(NewDerivationalMorpheme("Infinitive1", "Inf1"))
 	Inf2         = addMorpheme(NewDerivationalMorpheme("Infinitive2", "Inf2"))
 	ByDoingSo    = addMorpheme(NewDerivationalMorpheme("ByDoingSo", "ByDoingSo"))
 	AfterDoingSo = addMorpheme(NewDerivationalMorpheme("AfterDoingSo", "AfterDoingSo"))
@@ -127,45 +128,60 @@ type TurkishMorphotactics struct {
 	P1plS         *MorphemeState
 	P2plS         *MorphemeState
 	P3plS         *MorphemeState
+	NounInf1Root  *MorphemeState
+	A3sgInf1S     *MorphemeState
+	PnonInf1S     *MorphemeState
 	NomST         *MorphemeState
 	NomS          *MorphemeState
 	DatST         *MorphemeState
 	AblST         *MorphemeState
-	LocST         *MorphemeState  // Loc (non-terminal for -ki)
+	LocST         *MorphemeState // Loc (non-terminal for -ki)
 	InsST         *MorphemeState
 	AccST         *MorphemeState
 	GenST         *MorphemeState
 	EquST         *MorphemeState
-	RelS          *MorphemeState  // Relative (-ki)
+	RelS          *MorphemeState // Relative (-ki)
 	DimS          *MorphemeState
-	WithoutS      *MorphemeState  // Without (-siz/-sız)
-	NessS         *MorphemeState  // Ness (-lik/-lık)
-	AcquireS      *MorphemeState  // Acquire (-len/-lan)
+	WithoutS      *MorphemeState // Without (-siz/-sız)
+	NessS         *MorphemeState // Ness (-lik/-lık)
+	AcquireS      *MorphemeState // Acquire (-len/-lan)
 	AdjectiveRoot *MorphemeState
 	VerbRoot      *MorphemeState
 
 	// Verb derivation states
-	VPassS        *MorphemeState  // Passive (-il/-in)
-	VPresPartS    *MorphemeState  // Present participle (-an/-en)
-	VPastPartS    *MorphemeState  // Past participle (-dık/-dik)
-	VInf2S        *MorphemeState  // Infinitive2 (-ma/-me → Noun)
-	VByDoingSoS   *MorphemeState  // ByDoingSo (-arak/-erek → Adverb)
-	VAfterDoingS  *MorphemeState  // AfterDoingSo (-ıp/-ip → Adverb)
-	VAgtS         *MorphemeState  // Agent (-ıcı/-ici → Adjective)
-	VNegS         *MorphemeState  // Negative (-ma/-me)
-	VCausS        *MorphemeState  // Causative (-t/-tir/-dir)
+	VPassS       *MorphemeState // Passive (-il/-in)
+	VPresPartS   *MorphemeState // Present participle (-an/-en)
+	VPastPartS   *MorphemeState // Past participle (-dık/-dik)
+	VInf1S       *MorphemeState // Infinitive1 (-mak/-mek)
+	VInf2S       *MorphemeState // Infinitive2 (-ma/-me → Noun)
+	VByDoingSoS  *MorphemeState // ByDoingSo (-arak/-erek → Adverb)
+	VAfterDoingS *MorphemeState // AfterDoingSo (-ıp/-ip → Adverb)
+	VAgtS        *MorphemeState // Agent (-ıcı/-ici → Adjective)
+	VNegS        *MorphemeState // Negative (-ma/-me)
+	VCausS       *MorphemeState // Causative (-t/-tir/-dir)
 
 	// Verb tense states
-	VFutS         *MorphemeState  // Future tense
-	VFutPartS     *MorphemeState  // Future participle
-	VProg1S       *MorphemeState  // Progressive1 (-iyor)
-	VPastS        *MorphemeState  // Past tense (-di)
-	VA1sgST       *MorphemeState  // Verb A1sg terminal
-	VA2sgST       *MorphemeState  // Verb A2sg terminal
-	VA3sgST       *MorphemeState  // Verb A3sg terminal
-	VA1plST       *MorphemeState  // Verb A1pl terminal
-	VA2plST       *MorphemeState  // Verb A2pl terminal
-	VA3plST       *MorphemeState  // Verb A3pl terminal
+	VFutS     *MorphemeState // Future tense
+	VFutPartS *MorphemeState // Future participle
+	VProg1S   *MorphemeState // Progressive1 (-iyor)
+	VPastS    *MorphemeState // Past tense (-di)
+	VA1sgST   *MorphemeState // Verb A1sg terminal
+	VA2sgST   *MorphemeState // Verb A2sg terminal
+	VA3sgST   *MorphemeState // Verb A3sg terminal
+	VA1plST   *MorphemeState // Verb A1pl terminal
+	VA2plST   *MorphemeState // Verb A2pl terminal
+	VA3plST   *MorphemeState // Verb A3pl terminal
+
+	// Additional POS root states (previously defaulted to noun)
+	AdverbRoot      *MorphemeState
+	ConjunctionRoot *MorphemeState
+	PostpRoot       *MorphemeState
+	DeterminerRoot  *MorphemeState
+	PronounRoot     *MorphemeState
+	NumeralRoot     *MorphemeState
+	InterjRoot      *MorphemeState
+	QuestionRoot    *MorphemeState
+	DuplicatorRoot  *MorphemeState
 
 	// Stem transitions manager
 	stemTransitions *StemTransitionsMapBased
@@ -186,7 +202,7 @@ func NewTurkishMorphotactics(lex *lexicon.RootLexicon) *TurkishMorphotactics {
 	tm.NounS = NewMorphemeStateBuilder("noun_S", Noun).SetPosRoot(true).Build()
 	tm.A3sgS = NewMorphemeStateNonTerminal("a3sg_S", A3sg)
 	tm.A3plS = NewMorphemeStateNonTerminal("a3pl_S", A3pl)
-	
+
 	tm.PnonS = NewMorphemeStateNonTerminal("pnon_S", Pnon)
 	tm.P1sgS = NewMorphemeStateNonTerminal("p1sg_S", P1sg)
 	tm.P2sgS = NewMorphemeStateNonTerminal("p2sg_S", P2sg)
@@ -194,6 +210,9 @@ func NewTurkishMorphotactics(lex *lexicon.RootLexicon) *TurkishMorphotactics {
 	tm.P1plS = NewMorphemeStateNonTerminal("p1pl_S", P1pl)
 	tm.P2plS = NewMorphemeStateNonTerminal("p2pl_S", P2pl)
 	tm.P3plS = NewMorphemeStateNonTerminal("p3pl_S", P3pl)
+	tm.NounInf1Root = NewMorphemeStateBuilder("nounInf1Root_S", Noun).SetPosRoot(true).Build()
+	tm.A3sgInf1S = NewMorphemeStateNonTerminal("a3sgInf1_S", A3sg)
+	tm.PnonInf1S = NewMorphemeStateNonTerminal("pnonInf1_S", Pnon)
 
 	// Case states
 	tm.NomST = NewMorphemeStateTerminal("nom_ST", Nom)
@@ -228,10 +247,39 @@ func NewTurkishMorphotactics(lex *lexicon.RootLexicon) *TurkishMorphotactics {
 	// Verb root
 	tm.VerbRoot = NewMorphemeStateBuilder("verbRoot_S", Verb).SetPosRoot(true).Build()
 
+	// Additional POS roots (so we don't fall back to noun for these types)
+	tm.AdverbRoot = NewMorphemeStateTerminal("adverbRoot_ST", Adv)
+	tm.AdverbRoot.PosRoot = true
+
+	tm.ConjunctionRoot = NewMorphemeStateTerminal("conjunctionRoot_ST", Conj)
+	tm.ConjunctionRoot.PosRoot = true
+
+	tm.PostpRoot = NewMorphemeStateTerminal("postpRoot_ST", Postp)
+	tm.PostpRoot.PosRoot = true
+
+	tm.DeterminerRoot = NewMorphemeStateTerminal("determinerRoot_ST", Det)
+	tm.DeterminerRoot.PosRoot = true
+
+	tm.PronounRoot = NewMorphemeStateTerminal("pronounRoot_ST", Pron)
+	tm.PronounRoot.PosRoot = true
+
+	tm.NumeralRoot = NewMorphemeStateTerminal("numeralRoot_ST", Num)
+	tm.NumeralRoot.PosRoot = true
+
+	tm.InterjRoot = NewMorphemeStateTerminal("interjectionRoot_ST", Interj)
+	tm.InterjRoot.PosRoot = true
+
+	tm.QuestionRoot = NewMorphemeStateTerminal("questionRoot_ST", Ques)
+	tm.QuestionRoot.PosRoot = true
+
+	tm.DuplicatorRoot = NewMorphemeStateTerminal("duplicatorRoot_ST", Dup)
+	tm.DuplicatorRoot.PosRoot = true
+
 	// Verb derivation states
 	tm.VPassS = NewMorphemeStateBuilder("vPass_S", Pass).SetDerivative(true).Build()
 	tm.VPresPartS = NewMorphemeStateBuilder("vPresPart_S", PresPart).SetDerivative(true).Build()
 	tm.VPastPartS = NewMorphemeStateBuilder("vPastPart_S", PastPart).SetDerivative(true).Build()
+	tm.VInf1S = NewMorphemeStateBuilder("vInf1_S", Inf1).SetDerivative(true).Build()
 	tm.VInf2S = NewMorphemeStateBuilder("vInf2_S", Inf2).SetDerivative(true).Build()
 	tm.VByDoingSoS = NewMorphemeStateBuilder("vByDoingSo_S", ByDoingSo).SetDerivative(true).Build()
 	tm.VAfterDoingS = NewMorphemeStateBuilder("vAfterDoing_S", AfterDoingSo).SetDerivative(true).Build()
@@ -269,24 +317,24 @@ func NewTurkishMorphotactics(lex *lexicon.RootLexicon) *TurkishMorphotactics {
 func (tm *TurkishMorphotactics) connectNounStates() {
 	// Noun -> A3sg (default singular)
 	NewSuffixTransitionBuilder(tm.NounS, tm.A3sgS).Empty().Build()
-	
+
 	// Noun -> A3pl (plural -lar/-ler)
 	NewSuffixTransitionBuilder(tm.NounS, tm.A3plS).SetTemplate("lAr").Build()
 
 	// A3sg -> Pnon (no possession)
 	NewSuffixTransitionBuilder(tm.A3sgS, tm.PnonS).Empty().Build()
-	
+
 	// A3sg -> Possession markers
-	NewSuffixTransitionBuilder(tm.A3sgS, tm.P1sgS).SetTemplate("Im").Build()    // -ım/-im/-um/-üm
-	NewSuffixTransitionBuilder(tm.A3sgS, tm.P2sgS).SetTemplate("In").Build()    // -ın/-in/-un/-ün
-	NewSuffixTransitionBuilder(tm.A3sgS, tm.P3sgS).SetTemplate("sI").Build()    // -sı/-si/-su/-sü
-	NewSuffixTransitionBuilder(tm.A3sgS, tm.P1plS).SetTemplate("ImIz").Build()  // -ımız/-imiz
-	NewSuffixTransitionBuilder(tm.A3sgS, tm.P2plS).SetTemplate("InIz").Build()  // -ınız/-iniz
-	NewSuffixTransitionBuilder(tm.A3sgS, tm.P3plS).SetTemplate("lArI").Build()  // -ları/-leri
+	NewSuffixTransitionBuilder(tm.A3sgS, tm.P1sgS).SetTemplate("Im").Build()   // -ım/-im/-um/-üm
+	NewSuffixTransitionBuilder(tm.A3sgS, tm.P2sgS).SetTemplate("In").Build()   // -ın/-in/-un/-ün
+	NewSuffixTransitionBuilder(tm.A3sgS, tm.P3sgS).SetTemplate("sI").Build()   // -sı/-si/-su/-sü
+	NewSuffixTransitionBuilder(tm.A3sgS, tm.P1plS).SetTemplate("ImIz").Build() // -ımız/-imiz
+	NewSuffixTransitionBuilder(tm.A3sgS, tm.P2plS).SetTemplate("InIz").Build() // -ınız/-iniz
+	NewSuffixTransitionBuilder(tm.A3sgS, tm.P3plS).SetTemplate("lArI").Build() // -ları/-leri
 
 	// A3pl -> Pnon
 	NewSuffixTransitionBuilder(tm.A3plS, tm.PnonS).Empty().Build()
-	
+
 	// A3pl -> Possession markers
 	NewSuffixTransitionBuilder(tm.A3plS, tm.P1sgS).SetTemplate("Im").Build()
 	NewSuffixTransitionBuilder(tm.A3plS, tm.P2sgS).SetTemplate("In").Build()
@@ -300,37 +348,45 @@ func (tm *TurkishMorphotactics) connectNounStates() {
 
 	// P3sg: ev-i (Pnon → cases use regular templates)
 	NewSuffixTransitionBuilder(tm.P3sgS, tm.NomST).Empty().Build()
-	NewSuffixTransitionBuilder(tm.P3sgS, tm.DatST).SetTemplate("nA").Build()      // evine (not eva)
-	NewSuffixTransitionBuilder(tm.P3sgS, tm.AccST).SetTemplate("nI").Build()      // evini
-	NewSuffixTransitionBuilder(tm.P3sgS, tm.AblST).SetTemplate("ndAn").Build()    // evinden
-	NewSuffixTransitionBuilder(tm.P3sgS, tm.LocST).SetTemplate("ndA").Build()     // evinde
-	NewSuffixTransitionBuilder(tm.P3sgS, tm.InsST).SetTemplate("ylA").Build()     // eviyle
-	NewSuffixTransitionBuilder(tm.P3sgS, tm.GenST).SetTemplate("nIn").Build()     // evinin
-	NewSuffixTransitionBuilder(tm.P3sgS, tm.EquST).SetTemplate("ncA").Build()     // evince
+	NewSuffixTransitionBuilder(tm.P3sgS, tm.DatST).SetTemplate("nA").Build()   // evine (not eva)
+	NewSuffixTransitionBuilder(tm.P3sgS, tm.AccST).SetTemplate("nI").Build()   // evini
+	NewSuffixTransitionBuilder(tm.P3sgS, tm.AblST).SetTemplate("ndAn").Build() // evinden
+	NewSuffixTransitionBuilder(tm.P3sgS, tm.LocST).SetTemplate("ndA").Build()  // evinde
+	NewSuffixTransitionBuilder(tm.P3sgS, tm.InsST).SetTemplate("ylA").Build()  // eviyle
+	NewSuffixTransitionBuilder(tm.P3sgS, tm.GenST).SetTemplate("nIn").Build()  // evinin
+	NewSuffixTransitionBuilder(tm.P3sgS, tm.EquST).SetTemplate("ncA").Build()  // evince
 
 	// P3pl: ev-ler-i
 	NewSuffixTransitionBuilder(tm.P3plS, tm.NomST).Empty().Build()
-	NewSuffixTransitionBuilder(tm.P3plS, tm.DatST).SetTemplate("nA").Build()      // evlerine
-	NewSuffixTransitionBuilder(tm.P3plS, tm.AccST).SetTemplate("nI").Build()      // evlerini
-	NewSuffixTransitionBuilder(tm.P3plS, tm.AblST).SetTemplate("ndAn").Build()    // evlerinden
-	NewSuffixTransitionBuilder(tm.P3plS, tm.LocST).SetTemplate("ndA").Build()     // evlerinde
-	NewSuffixTransitionBuilder(tm.P3plS, tm.InsST).SetTemplate("ylA").Build()     // evleriyle
-	NewSuffixTransitionBuilder(tm.P3plS, tm.GenST).SetTemplate("nIn").Build()     // evlerinin
-	NewSuffixTransitionBuilder(tm.P3plS, tm.EquST).SetTemplate("+ncA").Build()    // evlerince
+	NewSuffixTransitionBuilder(tm.P3plS, tm.DatST).SetTemplate("nA").Build()   // evlerine
+	NewSuffixTransitionBuilder(tm.P3plS, tm.AccST).SetTemplate("nI").Build()   // evlerini
+	NewSuffixTransitionBuilder(tm.P3plS, tm.AblST).SetTemplate("ndAn").Build() // evlerinden
+	NewSuffixTransitionBuilder(tm.P3plS, tm.LocST).SetTemplate("ndA").Build()  // evlerinde
+	NewSuffixTransitionBuilder(tm.P3plS, tm.InsST).SetTemplate("ylA").Build()  // evleriyle
+	NewSuffixTransitionBuilder(tm.P3plS, tm.GenST).SetTemplate("nIn").Build()  // evlerinin
+	NewSuffixTransitionBuilder(tm.P3plS, tm.EquST).SetTemplate("+ncA").Build() // evlerince
 
 	// Other possession states use standard templates
 	possStates := []*MorphemeState{tm.PnonS, tm.P1sgS, tm.P2sgS, tm.P1plS, tm.P2plS}
 
 	for _, poss := range possStates {
 		NewSuffixTransitionBuilder(poss, tm.NomST).Empty().Build()
-		NewSuffixTransitionBuilder(poss, tm.DatST).SetTemplate("+yA").Build()     // -a/-e or -ya/-ye
-		NewSuffixTransitionBuilder(poss, tm.AccST).SetTemplate("+yI").Build()     // -ı/-i/-u/-ü or -yı/-yi/-yu/-yü
-		NewSuffixTransitionBuilder(poss, tm.AblST).SetTemplate(">dAn").Build()    // -dan/-den/-tan/-ten
-		NewSuffixTransitionBuilder(poss, tm.LocST).SetTemplate(">dA").Build()     // -da/-de/-ta/-te
-		NewSuffixTransitionBuilder(poss, tm.InsST).SetTemplate("+ylA").Build()    // -la/-le or -yla/-yle
-		NewSuffixTransitionBuilder(poss, tm.GenST).SetTemplate("+nIn").Build()    // -nın/-nin or -ın/-in
-		NewSuffixTransitionBuilder(poss, tm.EquST).SetTemplate(">cA").Build()     // -ca/-ce
+		NewSuffixTransitionBuilder(poss, tm.DatST).SetTemplate("+yA").Build()  // -a/-e or -ya/-ye
+		NewSuffixTransitionBuilder(poss, tm.AccST).SetTemplate("+yI").Build()  // -ı/-i/-u/-ü or -yı/-yi/-yu/-yü
+		NewSuffixTransitionBuilder(poss, tm.AblST).SetTemplate(">dAn").Build() // -dan/-den/-tan/-ten
+		NewSuffixTransitionBuilder(poss, tm.LocST).SetTemplate(">dA").Build()  // -da/-de/-ta/-te
+		NewSuffixTransitionBuilder(poss, tm.InsST).SetTemplate("+ylA").Build() // -la/-le or -yla/-yle
+		NewSuffixTransitionBuilder(poss, tm.GenST).SetTemplate("+nIn").Build() // -nın/-nin or -ın/-in
+		NewSuffixTransitionBuilder(poss, tm.EquST).SetTemplate(">cA").Build()  // -ca/-ce
 	}
+
+	// Infinitive1 derived nouns have restricted suffixes
+	NewSuffixTransitionBuilder(tm.NounInf1Root, tm.A3sgInf1S).Empty().Build()
+	NewSuffixTransitionBuilder(tm.A3sgInf1S, tm.PnonInf1S).Empty().Build()
+	NewSuffixTransitionBuilder(tm.PnonInf1S, tm.NomST).Empty().Build()
+	NewSuffixTransitionBuilder(tm.PnonInf1S, tm.AblST).SetTemplate("tAn").Build()
+	NewSuffixTransitionBuilder(tm.PnonInf1S, tm.LocST).SetTemplate("tA").Build()
+	NewSuffixTransitionBuilder(tm.PnonInf1S, tm.InsST).SetTemplate("lA").Build()
 
 	// Loc_ST + "ki" -> Rel (relation/relative suffix: dosya-da-ki, masa-da-ki)
 	NewSuffixTransitionBuilder(tm.LocST, tm.RelS).SetTemplate("ki").Build()
@@ -398,6 +454,10 @@ func (tm *TurkishMorphotactics) connectVerbStates() {
 	// vPass_S -> VerbRoot (passive returns to verb root for tenses)
 	NewSuffixTransitionBuilder(tm.VPassS, tm.VerbRoot).Empty().Build()
 
+	// VerbRoot -> Infinitive1 (-mak/-mek → Noun with limited suffixes)
+	NewSuffixTransitionBuilder(tm.VerbRoot, tm.VInf1S).SetTemplate("mA~k").Build()
+	NewSuffixTransitionBuilder(tm.VInf1S, tm.NounInf1Root).Empty().Build()
+
 	// VerbRoot -> Infinitive2 (-ma/-me → Noun: yargılama, bulunma)
 	NewSuffixTransitionBuilder(tm.VerbRoot, tm.VInf2S).SetTemplate("mA").Build()
 	// vInf2_S -> Noun
@@ -406,12 +466,12 @@ func (tm *TurkishMorphotactics) connectVerbStates() {
 	// VerbRoot -> ByDoingSo (-arak/-erek → Adverb: olarak)
 	NewSuffixTransitionBuilder(tm.VerbRoot, tm.VByDoingSoS).SetTemplate("+yArAk").Build()
 	// vByDoingSo_S -> Adverb root (becomes adverb)
-	NewSuffixTransitionBuilder(tm.VByDoingSoS, tm.AdjectiveRoot).Empty().Build()
+	NewSuffixTransitionBuilder(tm.VByDoingSoS, tm.AdverbRoot).Empty().Build()
 
 	// VerbRoot -> AfterDoingSo (-ıp/-ip/-up/-üp → Adverb: konuşup)
 	NewSuffixTransitionBuilder(tm.VerbRoot, tm.VAfterDoingS).SetTemplate("+yIp").Build()
 	// vAfterDoing_S -> Adverb root
-	NewSuffixTransitionBuilder(tm.VAfterDoingS, tm.AdjectiveRoot).Empty().Build()
+	NewSuffixTransitionBuilder(tm.VAfterDoingS, tm.AdverbRoot).Empty().Build()
 
 	// VerbRoot -> Causative (-dir/-tir: gerek-tir-ici)
 	NewSuffixTransitionBuilder(tm.VerbRoot, tm.VCausS).SetTemplate(">dIr").Build()
@@ -508,6 +568,24 @@ func (tm *TurkishMorphotactics) GetRootState(item *lexicon.DictionaryItem,
 		return tm.AdjectiveRoot
 	case turkish.Verb:
 		return tm.VerbRoot
+	case turkish.Adverb:
+		return tm.AdverbRoot
+	case turkish.Conjunction:
+		return tm.ConjunctionRoot
+	case turkish.PostPositive:
+		return tm.PostpRoot
+	case turkish.Determiner:
+		return tm.DeterminerRoot
+	case turkish.Pronoun:
+		return tm.PronounRoot
+	case turkish.Numeral:
+		return tm.NumeralRoot
+	case turkish.Interjection:
+		return tm.InterjRoot
+	case turkish.Question:
+		return tm.QuestionRoot
+	case turkish.Duplicator:
+		return tm.DuplicatorRoot
 	case turkish.Punctuation:
 		return tm.PuncRootST
 	default:
@@ -561,10 +639,35 @@ func (stm *StemTransitionsMapBased) AddDictionaryItem(item *lexicon.DictionaryIt
 // AddStemTransition adds a stem transition to the map
 func (stm *StemTransitionsMapBased) AddStemTransition(st *StemTransition) {
 	surface := st.Surface
-	if _, exists := stm.transitionMap[surface]; !exists {
-		stm.transitionMap[surface] = make([]*StemTransition, 0)
+	stm.addSurfaceTransition(surface, st, false)
+
+	item := st.Item
+	if item == nil {
+		return
 	}
-	stm.transitionMap[surface] = append(stm.transitionMap[surface], st)
+
+	if item.SecondaryPos == turkish.ProperNoun {
+		lowerSurface := turkish.Instance.ToLower(surface)
+		if lowerSurface != surface {
+			stm.addSurfaceTransition(lowerSurface, st, true)
+		}
+	}
+}
+
+func (stm *StemTransitionsMapBased) addSurfaceTransition(surface string, st *StemTransition, prioritize bool) {
+	list := stm.transitionMap[surface]
+	for _, existing := range list {
+		if existing == st {
+			return
+		}
+	}
+
+	if prioritize {
+		list = append([]*StemTransition{st}, list...)
+	} else {
+		list = append(list, st)
+	}
+	stm.transitionMap[surface] = list
 }
 
 // GetPrefixMatches returns stem transitions that match the input prefix
@@ -578,6 +681,19 @@ func (stm *StemTransitionsMapBased) GetPrefixMatches(input string, asciiTolerant
 		if transitions, exists := stm.transitionMap[prefix]; exists {
 			result = append(result, transitions...)
 		}
+	}
+
+	if len(result) > 1 {
+		nonProper := make([]*StemTransition, 0, len(result))
+		proper := make([]*StemTransition, 0)
+		for _, st := range result {
+			if st.Item != nil && st.Item.SecondaryPos == turkish.ProperNoun {
+				proper = append(proper, st)
+			} else {
+				nonProper = append(nonProper, st)
+			}
+		}
+		result = append(nonProper, proper...)
 	}
 
 	return result

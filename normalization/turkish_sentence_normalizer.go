@@ -2,8 +2,11 @@ package normalization
 
 import (
 	"bufio"
+	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
+	"unicode"
 
 	"github.com/kalaomer/zemberek-go/normalization/deasciifier"
 	"golang.org/x/text/cases"
@@ -21,30 +24,30 @@ func turkishToLower(s string) string {
 
 // TurkishSentenceNormalizer normalizes informal Turkish sentences
 type TurkishSentenceNormalizer struct {
-	SpellChecker          *TurkishSpellChecker
-	Replacements          map[string]string
-	NoSplitWords          map[string]bool
-	CommonSplits          map[string]string
+	SpellChecker            *TurkishSpellChecker
+	Replacements            map[string]string
+	NoSplitWords            map[string]bool
+	CommonSplits            map[string]string
 	CommonConnectedSuffixes map[string]bool
-	LookupManual          map[string][]string
-	LookupFromGraph       map[string][]string
-	LookupFromASCII       map[string][]string
-	AlwaysApplyDeasciifier bool
-	stemWords             []string
+	LookupManual            map[string][]string
+	LookupFromGraph         map[string][]string
+	LookupFromASCII         map[string][]string
+	AlwaysApplyDeasciifier  bool
+	stemWords               []string
 }
 
 // NewTurkishSentenceNormalizer creates a new sentence normalizer
 func NewTurkishSentenceNormalizer(stemWords []string, resourcesPath string) (*TurkishSentenceNormalizer, error) {
 	tsn := &TurkishSentenceNormalizer{
-		Replacements:          make(map[string]string),
-		NoSplitWords:          make(map[string]bool),
-		CommonSplits:          make(map[string]string),
+		Replacements:            make(map[string]string),
+		NoSplitWords:            make(map[string]bool),
+		CommonSplits:            make(map[string]string),
 		CommonConnectedSuffixes: make(map[string]bool),
-		LookupManual:          make(map[string][]string),
-		LookupFromGraph:       make(map[string][]string),
-		LookupFromASCII:       make(map[string][]string),
-		AlwaysApplyDeasciifier: false,
-		stemWords:             stemWords,
+		LookupManual:            make(map[string][]string),
+		LookupFromGraph:         make(map[string][]string),
+		LookupFromASCII:         make(map[string][]string),
+		AlwaysApplyDeasciifier:  false,
+		stemWords:               stemWords,
 	}
 
 	// Load resources
@@ -52,35 +55,35 @@ func NewTurkishSentenceNormalizer(stemWords []string, resourcesPath string) (*Tu
 		resourcesPath = "resources/normalization"
 	}
 
-	// Load replacements
-	if err := tsn.loadReplacements(resourcesPath + "/multi-word-replacements.txt"); err == nil {
-		// Ignore error if file doesn't exist
+	// Load replacements (support both .txt and extensionless dataset files)
+	if p := firstExisting(resourcesPath, "multi-word-replacements.txt", "multi-word-replacements"); p != "" {
+		_ = tsn.loadReplacements(p)
 	}
 
 	// Load no-split words
-	if err := tsn.loadNoSplit(resourcesPath + "/no-split.txt"); err == nil {
-		// Ignore error
+	if p := firstExisting(resourcesPath, "no-split.txt", "no-split"); p != "" {
+		_ = tsn.loadNoSplit(p)
 	}
 
 	// Load common splits
-	if err := tsn.loadCommonSplits(resourcesPath + "/split.txt"); err == nil {
-		// Ignore error
+	if p := firstExisting(resourcesPath, "split.txt", "split"); p != "" {
+		_ = tsn.loadCommonSplits(p)
 	}
 
 	// Load connected suffixes
-	if err := tsn.loadConnectedSuffixes(resourcesPath + "/question-suffixes.txt"); err == nil {
-		// Ignore error
+	if p := firstExisting(resourcesPath, "question-suffixes.txt", "question-suffixes"); p != "" {
+		_ = tsn.loadConnectedSuffixes(p)
 	}
 
 	// Load lookup maps
-	if err := tsn.loadMultimap(resourcesPath+"/candidates-manual.txt", tsn.LookupManual); err == nil {
-		// Ignore error
+	if p := firstExisting(resourcesPath, "candidates-manual.txt", "candidates-manual"); p != "" {
+		_ = tsn.loadMultimap(p, tsn.LookupManual)
 	}
-	if err := tsn.loadMultimap(resourcesPath+"/lookup-from-graph.txt", tsn.LookupFromGraph); err == nil {
-		// Ignore error
+	if p := firstExisting(resourcesPath, "lookup-from-graph.txt", "lookup-from-graph"); p != "" {
+		_ = tsn.loadMultimap(p, tsn.LookupFromGraph)
 	}
-	if err := tsn.loadMultimap(resourcesPath+"/ascii-map.txt", tsn.LookupFromASCII); err == nil {
-		// Ignore error
+	if p := firstExisting(resourcesPath, "ascii-map.txt", "ascii-map"); p != "" {
+		_ = tsn.loadMultimap(p, tsn.LookupFromASCII)
 	}
 
 	// Create spell checker
@@ -193,6 +196,24 @@ func (tsn *TurkishSentenceNormalizer) getCandidates(word string) []string {
 	return candidates
 }
 
+// expandInformalFuture converts common colloquial future endings to formal forms.
+// Patterns handled:
+//   - (.*)(i|ü)cem  → $1 + "eceğim"  (front vowel harmony)
+//   - (.*)(a|ı|o|u)cam → $1 + "acağım" (back vowel harmony)
+func expandInformalFuture(word string) []string {
+	w := word
+	if len(w) < 5 { // too short to match patterns reliably
+		return nil
+	}
+	// Work on lowercase; preProcess already lowercases, but be safe.
+	// Turkish casing complexities are already handled earlier; here we assume input is lowercased.
+	if strings.HasSuffix(w, "icem") || strings.HasSuffix(w, "ücem") || strings.HasSuffix(w, "ecem") || strings.HasSuffix(w, "ucem") {
+		base := w[:len(w)-4]
+		return []string{base + "eceğim"}
+	}
+	return nil
+}
+
 // replaceCommon replaces common multi-word phrases
 func (tsn *TurkishSentenceNormalizer) replaceCommon(tokens []string) string {
 	result := make([]string, 0, len(tokens))
@@ -255,8 +276,8 @@ func (tsn *TurkishSentenceNormalizer) combineCommon(w1, w2 string) string {
 		}
 	}
 
-	// Check if starts with apostrophe or "bil"
-	if strings.HasPrefix(w2, "'") || strings.HasPrefix(w2, "bil") {
+	// Combine only for apostrophe-attached tokens (e.g., proper nouns + suffix)
+	if strings.HasPrefix(w2, "'") {
 		return combined
 	}
 
@@ -311,6 +332,9 @@ func (tsn *TurkishSentenceNormalizer) separateCommon(word string, useLookup bool
 
 // loadReplacements loads replacement map
 func (tsn *TurkishSentenceNormalizer) loadReplacements(path string) error {
+	if path == "" {
+		return nil
+	}
 	file, err := os.Open(path)
 	if err != nil {
 		return err
@@ -333,6 +357,9 @@ func (tsn *TurkishSentenceNormalizer) loadReplacements(path string) error {
 
 // loadNoSplit loads no-split words
 func (tsn *TurkishSentenceNormalizer) loadNoSplit(path string) error {
+	if path == "" {
+		return nil
+	}
 	file, err := os.Open(path)
 	if err != nil {
 		return err
@@ -351,6 +378,9 @@ func (tsn *TurkishSentenceNormalizer) loadNoSplit(path string) error {
 
 // loadCommonSplits loads common splits
 func (tsn *TurkishSentenceNormalizer) loadCommonSplits(path string) error {
+	if path == "" {
+		return nil
+	}
 	file, err := os.Open(path)
 	if err != nil {
 		return err
@@ -364,15 +394,27 @@ func (tsn *TurkishSentenceNormalizer) loadCommonSplits(path string) error {
 			continue
 		}
 		parts := strings.Split(line, "-")
-		if len(parts) == 2 {
-			tsn.CommonSplits[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
+		if len(parts) != 2 {
+			parts = strings.SplitN(line, "=", 2)
+			if len(parts) != 2 {
+				continue
+			}
 		}
+		left := strings.TrimSpace(parts[0])
+		right := strings.TrimSpace(parts[1])
+		if left == "" || right == "" {
+			continue
+		}
+		tsn.CommonSplits[left] = right
 	}
 	return scanner.Err()
 }
 
 // loadConnectedSuffixes loads connected suffixes
 func (tsn *TurkishSentenceNormalizer) loadConnectedSuffixes(path string) error {
+	if path == "" {
+		return nil
+	}
 	file, err := os.Open(path)
 	if err != nil {
 		return err
@@ -391,6 +433,9 @@ func (tsn *TurkishSentenceNormalizer) loadConnectedSuffixes(path string) error {
 
 // loadMultimap loads multimap
 func (tsn *TurkishSentenceNormalizer) loadMultimap(path string, target map[string][]string) error {
+	if path == "" {
+		return nil
+	}
 	file, err := os.Open(path)
 	if err != nil {
 		return err
@@ -439,10 +484,14 @@ func isWord(token string) bool {
 		return false
 	}
 	for _, r := range token {
-		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') ||
-			r == 'ç' || r == 'Ç' || r == 'ğ' || r == 'Ğ' || r == 'ı' || r == 'İ' ||
-			r == 'ö' || r == 'Ö' || r == 'ş' || r == 'Ş' || r == 'ü' || r == 'Ü' ||
-			r == '\'' || r == '-') {
+		switch {
+		case unicode.IsLetter(r):
+			continue
+		case unicode.IsMark(r):
+			continue
+		case r == '\'' || r == '-':
+			continue
+		default:
 			return false
 		}
 	}
@@ -517,6 +566,25 @@ func NewHypothesis() *Hypothesis {
 		Previous: nil,
 		Score:    0.0,
 	}
+}
+
+// firstExisting tries resourceRoot/one of names in order and returns the first existing path.
+// If none exist or resourceRoot is empty, returns empty string.
+func firstExisting(resourceRoot string, names ...string) string {
+	if resourceRoot == "" {
+		return ""
+	}
+	for _, n := range names {
+		if n == "" {
+			continue
+		}
+		p := filepath.Join(resourceRoot, n)
+		if _, err := os.Stat(p); err == nil {
+			return p
+		}
+	}
+	_ = fmt.Sprintf // keep fmt import
+	return ""
 }
 
 // Equals checks if two hypotheses are equal

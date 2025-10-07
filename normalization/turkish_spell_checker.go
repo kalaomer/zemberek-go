@@ -1,20 +1,23 @@
 package normalization
 
 import (
+	"math"
 	"regexp"
 	"sort"
 	"strings"
 	"unicode"
 
 	"github.com/kalaomer/zemberek-go/core/turkish"
+	"github.com/kalaomer/zemberek-go/lm"
 )
 
 // TurkishSpellChecker provides spell checking and suggestion functionality
 type TurkishSpellChecker struct {
-	Decoder      *CharacterGraphDecoder
-	CharMatcher  CharMatcher
-	Morphology   interface{} // *morphology.TurkishMorphology
-	stemWords    []string
+	Decoder       *CharacterGraphDecoder
+	CharMatcher   CharMatcher
+	Morphology    interface{} // *morphology.TurkishMorphology
+	stemWords     []string
+	LanguageModel lm.LanguageModel
 }
 
 // NewTurkishSpellChecker creates a new spell checker
@@ -48,12 +51,24 @@ func (tsc *TurkishSpellChecker) SuggestForWordForNormalization(word string, left
 // SuggestForWordWithContext returns suggestions with context awareness
 func (tsc *TurkishSpellChecker) SuggestForWordWithContext(word string, previous string, next string) []string {
 	unranked := tsc.getUnrankedSuggestions(word)
+	if len(unranked) == 0 {
+		return unranked
+	}
 
-	// TODO: In full implementation, use language model to rank with context
-	// For now, use edit distance ranking
-	// Would be: return tsc.rankByLM(word, previous, next, unranked)
+	if tsc.LanguageModel == nil {
+		return tsc.rankByEditDistance(word, unranked)
+	}
 
-	return tsc.rankByEditDistance(word, unranked)
+	order := tsc.LanguageModel.GetOrder()
+	if order < 1 {
+		return tsc.rankByEditDistance(word, unranked)
+	}
+
+	if order == 1 {
+		return tsc.rankByUnigramProbability(word, unranked)
+	}
+
+	return tsc.rankByContextProbability(word, unranked, previous, next)
 }
 
 // getUnrankedSuggestions gets raw suggestions from decoder
@@ -118,6 +133,109 @@ func (tsc *TurkishSpellChecker) rankByEditDistance(original string, suggestions 
 	}
 
 	return result
+}
+
+func (tsc *TurkishSpellChecker) rankByUnigramProbability(original string, suggestions []string) []string {
+	lmModel := tsc.LanguageModel
+	if lmModel == nil || len(suggestions) == 0 {
+		return suggestions
+	}
+
+	base := tsc.rankByEditDistance(original, append([]string(nil), suggestions...))
+	baseRank := make(map[string]int, len(base))
+	for i, s := range base {
+		baseRank[s] = i
+	}
+
+	vocab := lmModel.GetVocabulary()
+	type scored struct {
+		candidate string
+		score     float32
+	}
+	results := make([]scored, 0, len(suggestions))
+
+	for _, cand := range suggestions {
+		normalized := NormalizeForLM(cand)
+		idx := vocab.IndexOf(normalized)
+		score := lmModel.GetProbability([]int{idx})
+		results = append(results, scored{candidate: cand, score: score})
+	}
+
+	sort.SliceStable(results, func(i, j int) bool {
+		if math.Abs(float64(results[i].score-results[j].score)) < 1e-4 {
+			return baseRank[results[i].candidate] < baseRank[results[j].candidate]
+		}
+		return results[i].score > results[j].score
+	})
+
+	ordered := make([]string, len(results))
+	for i, r := range results {
+		ordered[i] = r.candidate
+	}
+	return ordered
+}
+
+func (tsc *TurkishSpellChecker) rankByContextProbability(original string, suggestions []string, previous, next string) []string {
+	lmModel := tsc.LanguageModel
+	if lmModel == nil || len(suggestions) == 0 {
+		return suggestions
+	}
+
+	base := tsc.rankByEditDistance(original, append([]string(nil), suggestions...))
+	baseRank := make(map[string]int, len(base))
+	for i, s := range base {
+		baseRank[s] = i
+	}
+
+	vocab := lmModel.GetVocabulary()
+	left := previous
+	if strings.TrimSpace(left) == "" {
+		left = vocab.SentenceStart
+	} else {
+		left = NormalizeForLM(left)
+	}
+	right := next
+	if strings.TrimSpace(right) == "" {
+		right = vocab.SentenceEnd
+	} else {
+		right = NormalizeForLM(right)
+	}
+
+	leftIdx := vocab.IndexOf(left)
+	rightIdx := vocab.IndexOf(right)
+	order := lmModel.GetOrder()
+
+	type scored struct {
+		candidate string
+		score     float32
+	}
+	results := make([]scored, 0, len(suggestions))
+
+	for _, cand := range suggestions {
+		norm := NormalizeForLM(cand)
+		idx := vocab.IndexOf(norm)
+		var score float32
+		if order >= 3 {
+			score = lmModel.GetProbability([]int{leftIdx, idx, rightIdx})
+		} else {
+			score = lmModel.GetProbability([]int{leftIdx, idx}) + lmModel.GetProbability([]int{idx, rightIdx})
+		}
+		results = append(results, scored{candidate: cand, score: score})
+	}
+
+	sort.SliceStable(results, func(i, j int) bool {
+		diff := results[i].score - results[j].score
+		if math.Abs(float64(diff)) < 1e-4 {
+			return baseRank[results[i].candidate] < baseRank[results[j].candidate]
+		}
+		return diff > 0
+	})
+
+	ordered := make([]string, len(results))
+	for i, r := range results {
+		ordered[i] = r.candidate
+	}
+	return ordered
 }
 
 // CaseType represents text case

@@ -2,6 +2,7 @@ package hash
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 )
 
@@ -63,15 +64,23 @@ func DeserializeLargeNgramMphf(r io.Reader) (*LargeNgramMphf, error) {
 	return NewLargeNgramMphf(maxBitMask, bucketMask, pageShift, hashes, offsets), nil
 }
 
-// Get returns the hash value for the given n-gram
-func (l *LargeNgramMphf) Get(ngram []int32, hash ...int32) int32 {
-	var hashVal int32
-	if len(hash) > 0 {
-		hashVal = hash[0]
-	} else {
-		hashVal = HashForIntSlice(ngram, -1)
+// Get returns the hash value for the given key and satisfies the Mphf interface
+func (l *LargeNgramMphf) Get(key interface{}, initialHash ...int32) int32 {
+	switch v := key.(type) {
+	case []int32:
+		var hashVal int32
+		if len(initialHash) > 0 {
+			hashVal = initialHash[0]
+		} else {
+			hashVal = HashForIntSlice(v, -1)
+		}
+		return l.getForIntSlice(v, hashVal)
+	default:
+		panic(fmt.Sprintf("unsupported key type for LargeNgramMphf: %T", key))
 	}
+}
 
+func (l *LargeNgramMphf) getForIntSlice(ngram []int32, hashVal int32) int32 {
 	pageIndex := Rshift(hashVal&l.MaxBitMask, uint(l.PageShift))
 	return l.Mphfs[pageIndex].Get(ngram, hashVal) + l.Offsets[pageIndex]
 }

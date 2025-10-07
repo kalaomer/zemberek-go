@@ -1,42 +1,30 @@
 # Zemberek-Go
 
-Go implementation of Zemberek NLP library for Turkish language processing.
-
-This is a port of [zemberek-python](https://github.com/Loodos/zemberek-python) which itself is a Python port of the original [zemberek-nlp](https://github.com/ahmetaa/zemberek-nlp) Java library.
+Go implementation of the original [zemberek-nlp](https://github.com/ahmetaa/zemberek-nlp) Java library for Turkish language processing.
 
 ## Features
 
 Currently, the following modules have been ported:
 
 ### Core
-- **Turkish Language Support**: Turkish alphabet, letters, phonetic attributes
-- **Hash Functions**: Multi-level perfect hash functions for compression
-- **Text Processing**: Text normalization utilities
-- **Compression**: Lossy integer lookup, quantization
-- **Data Structures**: Weight lookups, compressed weights
+- Turkish alphabet and phonetic attributes
+- Multi-level perfect hash functions and compression primitives
+- Text utilities for casing, diacritics and token helpers
 
 ### Tokenization
-- **Token**: Token types and structures
-- **Span**: Text span handling
-- **Sentence Extraction**: Turkish sentence boundary detection using perceptron models
-- **Perceptron Segmenter**: Rule-based and ML-based sentence segmentation
+- Token/span types and sentence boundary detection
 
 ### Language Model (LM)
-- **Vocabulary**: Language model vocabulary handling
-- **N-gram Data**: Compressed n-gram storage
-- **Gram Data Array**: Efficient n-gram data access
+- Compressed vocabulary and n‑gram accessors
+- SmoothLM reader with MPHFs
 
 ### Morphology
-- **Lexicon**: Dictionary items and root lexicon
-- **Morphemes**: Morpheme definitions and structures
-- **Morphotactics**: Turkish morphological rules (in progress)
-- **Analysis**: Word analysis (in progress)
-- **Generation**: Word generation (in progress)
+- Binary lexicon loader and dictionary items
+- Morphotactics graph, analysis and generation helpers
 
 ### Normalization
-- **Spell Checking**: Turkish spell checking (in progress)
-- **Text Normalization**: Noisy text normalization (in progress)
-- **Deasciifier**: Turkish diacritics restoration (in progress)
+- Full sentence normalizer with spell checker + LM ranking
+- Deasciifier and ASCII tolerant utilities
 
 ## Installation
 
@@ -69,31 +57,29 @@ func main() {
 }
 ```
 
-## Project Structure
+### Sentence normalization
 
-```
-zemberek-go/
-├── core/
-│   ├── turkish/      # Turkish language core
-│   ├── text/         # Text utilities
-│   ├── hash/         # Hash functions
-│   ├── compression/  # Compression algorithms
-│   ├── quantization/ # Quantization
-│   ├── data/         # Data structures
-│   └── utils/        # Utilities
-├── tokenization/     # Tokenization
-├── lm/              # Language models
-│   └── compression/ # LM compression
-├── morphology/      # Morphological analysis
-│   ├── lexicon/     # Dictionary
-│   ├── morphotactics/ # Morphological rules
-│   ├── analysis/    # Word analysis
-│   ├── generator/   # Word generation
-│   └── ambiguity/   # Disambiguation
-├── normalization/   # Text normalization
-│   └── deasciifier/ # Diacritics restoration
-└── resources/       # Data files
+```go
+package main
 
+import (
+    "fmt"
+    "log"
+
+    "github.com/kalaomer/zemberek-go/morphology"
+    "github.com/kalaomer/zemberek-go/normalization"
+)
+
+func main() {
+    morph := morphology.CreateWithDefaults()
+    normalizer, err := normalization.NewTurkishSentenceNormalizerAdvanced(morph, "data")
+    if err != nil {
+        log.Fatalf("normalizer init: %v", err)
+    }
+
+    input := "Yrn okua gidicem"
+    fmt.Println(normalizer.Normalize(input))
+}
 ```
 
 ## Dependencies
@@ -101,33 +87,28 @@ zemberek-go/
 - Go 1.18 or higher
 - Standard library only (no external dependencies for core functionality)
 
+### Resource data
+
+Language resources (lexicon binaries, normalization tables, language models) are expected under `data/` by default. If you keep them elsewhere, export `ZEMBEREK_DATA_ROOT=/absolute/path/to/your/data` so both the examples and the advanced normalizer can locate them.
+
+Example data bundles (LM and normalization folders) are available here: <https://drive.google.com/drive/folders/1tztjRiUs9BOTH-tb1v7FWyixl-iUpydW>. Download the archive, extract it to a directory of your choice, and point `ZEMBEREK_DATA_ROOT` to that directory before running the examples.
+
 ## Development Status
 
-This is an ongoing port of the Python version. The core functionality has been implemented, but some modules are still in progress:
-
-- ✅ Core modules (Turkish, Hash, Compression, Text)
-- ✅ Tokenization (Token, Span, Sentence Extraction)
-- ✅ LM Vocabulary and basic structures
-- ✅ Morphology Lexicon
-- 🚧 Morphology Analysis and Generation
-- 🚧 Normalization modules
-- 🚧 Complete LM implementation
+The port follows zemberek-nlp’s architecture module by module. Core components, tokenization, lexicon handling, language model loading and advanced normalization are functional; remaining work focuses on fine-tuning morphology generation/ambiguity resolution and extending test coverage as the Java baseline evolves.
 
 ## Notes
 
-This port maintains the architecture and approach of the original Python implementation while adapting to Go's idioms and best practices:
+This port mirrors the Java implementation’s architecture while adapting to Go idioms:
 
-- Python classes → Go structs with methods
-- Python enums → Go iota constants
-- Python dictionaries → Go maps
-- Python sets → Go maps with bool values
-- Python inheritance → Go composition and interfaces
+- Java classes → Go structs/interfaces
+- Java enums → Go iota constants
+- Immutable data → Go value types and generated readers
 
 ## Credits
 
 - Original Java implementation: [zemberek-nlp](https://github.com/ahmetaa/zemberek-nlp) by Ahmet A. Akın
-- Python port: [zemberek-python](https://github.com/Loodos/zemberek-python) by Loodos
-- Go port: This repository
+- Go port: This repository and its contributors
 
 ## License
 

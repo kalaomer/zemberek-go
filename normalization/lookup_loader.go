@@ -8,9 +8,10 @@ import (
 
 // LoadLookupMap loads a normalization lookup map from a file
 // Format examples:
-//   tmm = tamam
-//   iyi=ıyı,iyi
-//   ole=oley,öyle,öle
+//
+//	tmm = tamam
+//	iyi=ıyı,iyi
+//	ole=oley,öyle,öle
 func LoadLookupMap(filePath string) (map[string][]string, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -97,19 +98,19 @@ func LoadWordList(filePath string) ([]string, error) {
 func GetDefaultLookupMap() map[string][]string {
 	return map[string][]string{
 		// Most common informal abbreviations
-		"tmm":      {"tamam"},
-		"tşk":      {"teşekkür"},
-		"tsk":      {"teşekkür"},
-		"tskler":   {"teşekkürler"},
-		"tsklr":    {"teşekkürler"},
-		"cok":      {"çok"},
-		"bugun":    {"bugün"},
-		"iste":     {"işte"},
-		"ole":      {"öyle"},
-		"öle":      {"öyle"},
-		"bi":       {"bir"},
-		"len":      {"lan"},
-		"yav":      {"yahu"},
+		"tmm":    {"tamam"},
+		"tşk":    {"teşekkür"},
+		"tsk":    {"teşekkür"},
+		"tskler": {"teşekkürler"},
+		"tsklr":  {"teşekkürler"},
+		"cok":    {"çok"},
+		"bugun":  {"bugün"},
+		"iste":   {"işte"},
+		"ole":    {"öyle"},
+		"öle":    {"öyle"},
+		"bi":     {"bir"},
+		"len":    {"lan"},
+		"yav":    {"yahu"},
 
 		// Common typos
 		"gidicem":  {"gideceğim"},
@@ -123,8 +124,8 @@ func GetDefaultLookupMap() map[string][]string {
 		"istiyrum": {"istiyorum"},
 
 		// Diacritics variations
-		"ettı":     {"etti"},
-		"cıkmayın": {"çıkmayın"},
+		"ettı":       {"etti"},
+		"cıkmayın":   {"çıkmayın"},
 		"ınsanların": {"insanların"},
 		"kesınlıkle": {"kesinlikle"},
 		"beklenmiyo": {"beklenmiyor"},
@@ -137,7 +138,6 @@ func GetDefaultLookupMap() map[string][]string {
 		"buraları":   {"buraları"},
 		"oyle":       {"öyle"},
 		"birşey":     {"bir şey"},
-		"herşeyi":    {"her şeyi"},
 		"soyle":      {"söyle"},
 		"boyle":      {"böyle"},
 		"bankanizin": {"bankanızın"},
@@ -146,11 +146,11 @@ func GetDefaultLookupMap() map[string][]string {
 		"ogrenmek":   {"öğrenmek"},
 
 		// With alternatives
-		"yarin":    {"yarın"},
-		"okua":     {"okula"},
-		"annemde":  {"annem"},
-		"diyo":     {"diyor"},
-		"simdi":    {"şimdi"},
-		"yrn":      {"yarın"},
+		"yarin":   {"yarın"},
+		"okua":    {"okula"},
+		"annemde": {"annem"},
+		"diyo":    {"diyor"},
+		"simdi":   {"şimdi"},
+		"yrn":     {"yarın"},
 	}
 }

@@ -9,33 +9,33 @@ import (
 
 // TurkishAlphabet represents Turkish alphabet with all letters and special characters
 type TurkishAlphabet struct {
-	Lowercase          string
-	Uppercase          string
-	AllLetters         string
-	VowelsLowercase    string
-	VowelsUppercase    string
-	Vowels             map[rune]bool
-	Circumflex         string
-	CircumflexUpper    string
-	Circumflexes       map[rune]bool
-	Apostrophe         map[rune]bool
-	StopConsonants     string
-	VoicelessConsonants string
-	TurkishSpecific    string
+	Lowercase             string
+	Uppercase             string
+	AllLetters            string
+	VowelsLowercase       string
+	VowelsUppercase       string
+	Vowels                map[rune]bool
+	Circumflex            string
+	CircumflexUpper       string
+	Circumflexes          map[rune]bool
+	Apostrophe            map[rune]bool
+	StopConsonants        string
+	VoicelessConsonants   string
+	TurkishSpecific       string
 	TurkishSpecificLookup map[rune]bool
-	TurkishASCII       string
-	ASCIIEqTr          string
-	ASCIIEqTrSet       map[rune]bool
-	ASCIIEq            string
-	ForeignDiacritics  string
-	DiacriticsToTurkish string
+	TurkishASCII          string
+	ASCIIEqTr             string
+	ASCIIEqTrSet          map[rune]bool
+	ASCIIEq               string
+	ForeignDiacritics     string
+	DiacriticsToTurkish   string
 
-	VoicingMap         map[rune]rune
-	DevoicingMap       map[rune]rune
-	CircumflexMap      map[rune]rune
-	LetterMap          map[rune]*TurkicLetter
-	ASCIIEqualMap      map[rune]rune
-	TurkishToASCIIMap  map[rune]rune
+	VoicingMap           map[rune]rune
+	DevoicingMap         map[rune]rune
+	CircumflexMap        map[rune]rune
+	LetterMap            map[rune]*TurkicLetter
+	ASCIIEqualMap        map[rune]rune
+	TurkishToASCIIMap    map[rune]rune
 	ForeignDiacriticsMap map[rune]rune
 }
 
@@ -48,24 +48,24 @@ func init() {
 // NewTurkishAlphabet creates a new TurkishAlphabet instance
 func NewTurkishAlphabet() *TurkishAlphabet {
 	ta := &TurkishAlphabet{
-		Lowercase:          "abcçdefgğhıijklmnoöprsştuüvyzxwqâîû",
-		VowelsLowercase:    "aeıioöuüâîû",
-		Circumflex:         "âîû",
-		CircumflexUpper:    "ÂÎÛ",
-		StopConsonants:     "çkptÇKPT",
-		VoicelessConsonants: "çfhkpsştÇFHKPSŞT",
-		TurkishSpecific:    "çÇğĞıİöÖşŞüÜâîûÂÎÛ",
-		TurkishASCII:       "cCgGiIoOsSuUaiuAIU",
-		ASCIIEqTr:          "cCgGiIoOsSuUçÇğĞıİöÖşŞüÜ",
-		ASCIIEq:            "çÇğĞıİöÖşŞüÜcCgGiIoOsSuU",
-		ForeignDiacritics:  "ÀÁÂÃÄÅÈÉÊËÌÍÎÏÑÒÓÔÕÙÚÛàáâãäåèéêëìíîïñòóôõùúû",
-		DiacriticsToTurkish: "AAAAAAEEEEIIIINOOOOUUUaaaaaaeeeeiiiinoooouuu",
-		VoicingMap:         make(map[rune]rune),
-		DevoicingMap:       make(map[rune]rune),
-		CircumflexMap:      make(map[rune]rune),
-		LetterMap:          make(map[rune]*TurkicLetter),
-		ASCIIEqualMap:      make(map[rune]rune),
-		TurkishToASCIIMap:  make(map[rune]rune),
+		Lowercase:            "abcçdefgğhıijklmnoöprsştuüvyzxwqâîû",
+		VowelsLowercase:      "aeıioöuüâîû",
+		Circumflex:           "âîû",
+		CircumflexUpper:      "ÂÎÛ",
+		StopConsonants:       "çkptÇKPT",
+		VoicelessConsonants:  "çfhkpsştÇFHKPSŞT",
+		TurkishSpecific:      "çÇğĞıİöÖşŞüÜâîûÂÎÛ",
+		TurkishASCII:         "cCgGiIoOsSuUaiuAIU",
+		ASCIIEqTr:            "cCgGiIoOsSuUçÇğĞıİöÖşŞüÜ",
+		ASCIIEq:              "çÇğĞıİöÖşŞüÜcCgGiIoOsSuU",
+		ForeignDiacritics:    "ÀÁÂÃÄÅÈÉÊËÌÍÎÏÑÒÓÔÕÙÚÛàáâãäåèéêëìíîïñòóôõùúû",
+		DiacriticsToTurkish:  "AAAAAAEEEEIIIINOOOOUUUaaaaaaeeeeiiiinoooouuu",
+		VoicingMap:           make(map[rune]rune),
+		DevoicingMap:         make(map[rune]rune),
+		CircumflexMap:        make(map[rune]rune),
+		LetterMap:            make(map[rune]*TurkicLetter),
+		ASCIIEqualMap:        make(map[rune]rune),
+		TurkishToASCIIMap:    make(map[rune]rune),
 		ForeignDiacriticsMap: make(map[rune]rune),
 	}
 
@@ -140,6 +140,11 @@ func turkishUpper(s string) string {
 	return result.String()
 }
 
+// ToLower converts a string to lowercase using Turkish-specific rules
+func (ta *TurkishAlphabet) ToLower(s string) string {
+	return turkishLower(s)
+}
+
 func turkishLower(s string) string {
 	var result strings.Builder
 	for _, r := range s {
@@ -195,11 +200,11 @@ func (ta *TurkishAlphabet) IsASCIIEqual(c1, c2 rune) bool {
 
 // EqualsIgnoreDiacritics returns true if two strings are equal ignoring diacritics
 func (ta *TurkishAlphabet) EqualsIgnoreDiacritics(s1, s2 string) bool {
-	if len(s1) != len(s2) {
-		return false
-	}
 	r1 := []rune(s1)
 	r2 := []rune(s2)
+	if len(r1) != len(r2) {
+		return false
+	}
 	for i := range r1 {
 		if !ta.IsASCIIEqual(r1[i], r2[i]) {
 			return false
@@ -210,11 +215,11 @@ func (ta *TurkishAlphabet) EqualsIgnoreDiacritics(s1, s2 string) bool {
 
 // StartsWithIgnoreDiacritics returns true if s1 starts with s2 ignoring diacritics
 func (ta *TurkishAlphabet) StartsWithIgnoreDiacritics(s1, s2 string) bool {
-	if len(s1) < len(s2) {
-		return false
-	}
 	r1 := []rune(s1)
 	r2 := []rune(s2)
+	if len(r1) < len(r2) {
+		return false
+	}
 	for i := range r2 {
 		if !ta.IsASCIIEqual(r1[i], r2[i]) {
 			return false

@@ -1,6 +1,9 @@
 package lm
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
 // Vocabulary is an alias for LmVocabulary
 type Vocabulary = LmVocabulary
@@ -79,7 +82,15 @@ func (slm *SimpleLM) NgramExists(indexes []int) bool {
 
 // LoadFromFile loads LM from file (stub for now)
 func LoadFromFile(path string) (LanguageModel, error) {
-	// Full implementation would deserialize binary LM file
-	// For now, return a simple 2-gram model
-	return NewSimpleLM(2), nil
+	lm, err := LoadSmoothLM(path)
+	if err == nil {
+		return lm, nil
+	}
+	smoothErr := fmt.Errorf("smoothlm: %w", err)
+
+	if uni, uniErr := TryLoadUnigram(path); uniErr == nil {
+		return uni, nil
+	} else {
+		return nil, fmt.Errorf("%v; unigram: %w", smoothErr, uniErr)
+	}
 }

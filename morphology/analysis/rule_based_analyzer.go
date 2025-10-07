@@ -200,13 +200,18 @@ func (rba *RuleBasedAnalyzer) Advance(path *SearchPath) []*SearchPath {
 		surfaceTransition := NewSurfaceTransition(surface, suffixTransition)
 
 		// If tail equals surface, no need to recalculate attributes
-		var attributes map[turkish.PhoneticAttribute]bool
-		tailEqualsSurface := false
-		if rba.ASCIITolerant {
-			tailEqualsSurface = turkish.Instance.EqualsIgnoreDiacritics(path.Tail, surface)
-		} else {
-			tailEqualsSurface = path.Tail == surface
-		}
+    var attributes map[turkish.PhoneticAttribute]bool
+    tailEqualsSurface := false
+    if rba.ASCIITolerant {
+        // Guard against empty strings to avoid index errors in EqualsIgnoreDiacritics
+        if len(path.Tail) == len(surface) && len(surface) > 0 {
+            tailEqualsSurface = turkish.Instance.EqualsIgnoreDiacritics(path.Tail, surface)
+        } else {
+            tailEqualsSurface = path.Tail == surface
+        }
+    } else {
+        tailEqualsSurface = path.Tail == surface
+    }
 
 		if tailEqualsSurface {
 			// Copy attributes
