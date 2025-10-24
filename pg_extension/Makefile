@@ -4,10 +4,10 @@ MODULE_big = zemberek_go
 HEADERS = libzemberek_go.h
 
 # Only C object files here (no .a archives)
-OBJS = zemberek_go_wrapper.o
+OBJS = zemberek_go_wrapper.o 
 
 # Link the generated archive into the PostgreSQL extension
-SHLIB_LINK_INTERNAL += $(CURDIR)/libzemberek_go.a
+SHLIB_LINK += $(CURDIR)/libzemberek_go.a
 
 # Cleaning
 EXTRA_CLEAN = libzemberek_go.a libzemberek_go.h

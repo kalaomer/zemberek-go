@@ -58,22 +58,67 @@ CREATE EXTENSION zemberek_go;
 
 ## Usage
 
-### Demo Function: zemberek_go_hello
+### Normalize Turkish Text
 
-This is a demonstration function that shows how Go goroutines work within a PostgreSQL UDF.
+Normalizes informal Turkish text to formal Turkish:
 
 ```sql
-SELECT zemberek_go_hello('Merhaba');
+SELECT zemberek_normalize('mrhba nasilsin');
 ```
 
-Expected output:
+### Morphological Analysis
+
+Analyzes the morphological structure of Turkish words:
+
+```sql
+SELECT zemberek_analyze('kitaplarımızdan');
 ```
-Hello from Zemberek-Go! Results: [Goroutine-1 processed 'Merhaba'; Goroutine-2 processed 'Merhaba'; Goroutine-3 processed 'Merhaba']
+
+Returns detailed morphological analysis showing stems, suffixes, and grammatical features.
+
+### Extract Word Stem
+
+Extracts the root/stem from a Turkish word:
+
+```sql
+SELECT zemberek_stem('kitaplarımızdan');
+-- Returns: kitap
+```
+
+### Check if Word Has Valid Analysis
+
+Returns true if the word has valid morphological analysis (useful for spell checking):
+
+```sql
+SELECT zemberek_has_analysis('kitap');
+-- Returns: true
+
+SELECT zemberek_has_analysis('xyzabc');
+-- Returns: false
+```
+
+### Batch Processing
+
+Process multiple words or sentences:
+
+```sql
+-- Normalize a column of Turkish text
+SELECT id, zemberek_normalize(text_column) 
+FROM your_table;
+
+-- Find words without valid analysis (potential typos)
+SELECT word 
+FROM turkish_words 
+WHERE NOT zemberek_has_analysis(word);
+
+-- Extract stems for search indexing
+SELECT DISTINCT zemberek_stem(word) 
+FROM turkish_vocabulary;
 ```
 
 ## Adding New Functions
 
-To add new functionality from the zemberek-go modules:
+To add more functionality from the zemberek-go modules:
 
 1. **Add Go function** in `zemberek_go.go`:
    - Use `//export FunctionName` comment before the function
@@ -103,44 +148,50 @@ DROP EXTENSION zemberek_go CASCADE;
 CREATE EXTENSION zemberek_go;
 ```
 
-## Example: Adding a Morphology Analysis Function
+## Example: Adding Additional Functions
 
-Here's an example of how you might add a morphology analysis function:
+The current implementation provides four core functions. Here's how the pattern works if you want to add more:
 
-### In `zemberek_go.go`:
+### Example Structure
+
+**In `zemberek_go.go`:**
 ```go
-//export AnalyzeTurkish
-func AnalyzeTurkish(word *C.char) *C.char {
-    goWord := C.GoString(word)
-    // Use zemberek-go morphology package
-    // ... implementation ...
-    result := "analysis result"
+//export YourFunction
+func YourFunction(input *C.char) *C.char {
+    goInput := C.GoString(input)
+    // Process using zemberek-go libraries
+    result := processInput(goInput)
     return C.CString(result)
 }
 ```
 
-### In `zemberek_go_wrapper.c`:
+**In `zemberek_go_wrapper.c`:**
 ```c
-PG_FUNCTION_INFO_V1(analyze_turkish_wrapper);
+PG_FUNCTION_INFO_V1(your_function);
 
 Datum
-analyze_turkish_wrapper(PG_FUNCTION_ARGS)
+your_function(PG_FUNCTION_ARGS)
 {
     text *input_text = PG_GETARG_TEXT_PP(0);
     char *input_str = text_to_cstring(input_text);
-    char *result_str = AnalyzeTurkish(input_str);
+    char *result_str = YourFunction(input_str);
     text *result_text = cstring_to_text(result_str);
     free(result_str);
     PG_RETURN_TEXT_P(result_text);
 }
 ```
 
-### In `zemberek_go--0.1.0.sql`:
+**In `zemberek_go--0.1.0.sql`:**
 ```sql
-CREATE OR REPLACE FUNCTION analyze_turkish(word TEXT)
+CREATE OR REPLACE FUNCTION your_function(input TEXT)
 RETURNS TEXT
-AS 'MODULE_PATHNAME', 'analyze_turkish_wrapper'
+AS 'MODULE_PATHNAME', 'your_function'
 LANGUAGE C STRICT;
+```
+
+**In `libzemberek_go.h`:**
+```c
+extern char* YourFunction(char* input);
 ```
 
 ## Troubleshooting
