@@ -26,3 +26,11 @@ go.work
 
 # OS
 .DS_Store
+
+# SQLite databases
+*.db
+*.db-shm
+*.db-wal
+
+# Example binaries
+fts5_example

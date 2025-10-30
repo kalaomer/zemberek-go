@@ -1,128 +1,64 @@
 package sqlite_extension
 
-/*
-#cgo CFLAGS: -DSQLITE_CORE
-#include <sqlite3ext.h>
-#include <stdlib.h>
-#include <string.h>
-
-// Forward declarations
-static int zemberekCreate(void *pCtx, const char **azArg, int nArg, Fts5Tokenizer **ppOut);
-static void zemberekDelete(Fts5Tokenizer *pTokenizer);
-static int zemberekTokenize(Fts5Tokenizer *pTokenizer, void *pCtx, int flags, const char *pText, int nText,
-                           int (*xToken)(void*, int, const char*, int, int, int));
-
-// Tokenizer structure
-typedef struct ZemberekTokenizer {
-    int dummy; // Placeholder, actual state managed in Go
-} ZemberekTokenizer;
-
-// FTS5 tokenizer module
-static fts5_tokenizer zemberekTokenizerModule = {
-    zemberekCreate,
-    zemberekDelete,
-    zemberekTokenize
-};
-
-// Create tokenizer instance
-static int zemberekCreate(void *pCtx, const char **azArg, int nArg, Fts5Tokenizer **ppOut) {
-    ZemberekTokenizer *pTok = (ZemberekTokenizer*)sqlite3_malloc(sizeof(ZemberekTokenizer));
-    if (pTok == NULL) {
-        return SQLITE_NOMEM;
-    }
-    memset(pTok, 0, sizeof(ZemberekTokenizer));
-    *ppOut = (Fts5Tokenizer*)pTok;
-    return SQLITE_OK;
-}
-
-// Delete tokenizer instance
-static void zemberekDelete(Fts5Tokenizer *pTokenizer) {
-    if (pTokenizer) {
-        sqlite3_free(pTokenizer);
-    }
-}
-
-// Tokenize function - calls into Go
-extern int goTokenize(void *pCtx, int flags, const char *pText, int nText,
-                     int (*xToken)(void*, int, const char*, int, int, int));
-
-static int zemberekTokenize(Fts5Tokenizer *pTokenizer, void *pCtx, int flags,
-                           const char *pText, int nText,
-                           int (*xToken)(void*, int, const char*, int, int, int)) {
-    return goTokenize(pCtx, flags, pText, nText, xToken);
-}
-
-// Registration function
-static int registerZemberekTokenizer(sqlite3 *db, const char *zName) {
-    int rc = SQLITE_OK;
-    fts5_api *pApi = NULL;
-
-    // Get FTS5 API
-    sqlite3_stmt *pStmt = NULL;
-    rc = sqlite3_prepare_v2(db, "SELECT fts5(?1)", -1, &pStmt, 0);
-    if (rc != SQLITE_OK) {
-        return rc;
-    }
-
-    sqlite3_bind_pointer(pStmt, 1, (void*)&pApi, "fts5_api_ptr", 0);
-    sqlite3_step(pStmt);
-
-    if (pApi == NULL) {
-        sqlite3_finalize(pStmt);
-        return SQLITE_ERROR;
-    }
-
-    sqlite3_finalize(pStmt);
-
-    // Register tokenizer
-    rc = pApi->xCreateTokenizer(pApi, zName, (void*)pApi, &zemberekTokenizerModule, NULL);
-
-    return rc;
-}
-*/
-import "C"
 import (
 	"strings"
-	"unsafe"
+	"unicode"
 
 	"github.com/kalaomer/zemberek-go/tokenization"
 )
 
-// TokenizeCallback is the type for the FTS5 token callback
-type TokenizeCallback func(flags int, token string, start, end int) int
-
-var (
-	currentCallback TokenizeCallback
-)
-
-//export goTokenize
-func goTokenize(pCtx unsafe.Pointer, flags C.int, pText *C.char, nText C.int,
-	xToken unsafe.Pointer) C.int {
-
-	// Convert C string to Go string
-	text := C.GoStringN(pText, nText)
-
-	// Create callback wrapper
-	callback := func(tflags int, token string, start, end int) int {
-		cToken := C.CString(token)
-		defer C.free(unsafe.Pointer(cToken))
-
-		// Call the FTS5 callback
-		xTokenFunc := *(*func(unsafe.Pointer, C.int, *C.char, C.int, C.int, C.int) C.int)(unsafe.Pointer(&xToken))
-		rc := xTokenFunc(pCtx, C.int(tflags), cToken, C.int(len(token)), C.int(start), C.int(end))
-		return int(rc)
-	}
-
-	// Use zemberek tokenizer
-	rc := tokenizeWithZemberek(text, callback)
-
-	return C.int(rc)
+// ZemberekTokenizer provides Turkish-aware tokenization for SQLite FTS5
+type ZemberekTokenizer struct {
+	normalizeCase    bool
+	removeDiacritics bool
 }
 
-// tokenizeWithZemberek performs tokenization using Zemberek
-func tokenizeWithZemberek(text string, callback func(int, string, int, int) int) int {
-	// Use simple tokenization for now
+// NewZemberekTokenizer creates a new tokenizer with default settings
+func NewZemberekTokenizer() *ZemberekTokenizer {
+	return &ZemberekTokenizer{
+		normalizeCase:    true,
+		removeDiacritics: false,
+	}
+}
+
+// NewZemberekTokenizerWithOptions creates a tokenizer with custom options
+func NewZemberekTokenizerWithOptions(normalizeCase, removeDiacritics bool) *ZemberekTokenizer {
+	return &ZemberekTokenizer{
+		normalizeCase:    normalizeCase,
+		removeDiacritics: removeDiacritics,
+	}
+}
+
+// Tokenize tokenizes the input text and returns tokens
+func (z *ZemberekTokenizer) Tokenize(text string) []string {
 	tokens := tokenization.SimpleTokenize(text)
+	result := make([]string, 0, len(tokens))
+
+	for _, token := range tokens {
+		// Skip whitespace-only tokens
+		if strings.TrimSpace(token) == "" {
+			continue
+		}
+
+		// Skip pure punctuation
+		if isPunctuation(token) {
+			continue
+		}
+
+		// Normalize token
+		normalized := z.normalizeToken(token)
+		if normalized != "" {
+			result = append(result, normalized)
+		}
+	}
+
+	return result
+}
+
+// TokenizeWithPositions returns tokens with their positions in the original text
+func (z *ZemberekTokenizer) TokenizeWithPositions(text string) []TokenPosition {
+	tokens := tokenization.SimpleTokenize(text)
+	result := make([]TokenPosition, 0, len(tokens))
 
 	offset := 0
 	for _, token := range tokens {
@@ -141,42 +77,145 @@ func tokenizeWithZemberek(text string, callback func(int, string, int, int) int)
 			continue
 		}
 
-		// Convert to lowercase for matching
-		normalizedToken := strings.ToLower(token)
+		// Skip pure punctuation
+		if isPunctuation(token) {
+			offset = end
+			continue
+		}
 
-		// FTS5_TOKEN_COLOCATED = 0x0001
-		rc := callback(0, normalizedToken, start, end)
-		if rc != 0 {
-			return rc
+		// Normalize token
+		normalized := z.normalizeToken(token)
+		if normalized != "" {
+			result = append(result, TokenPosition{
+				Token: normalized,
+				Start: start,
+				End:   end,
+			})
 		}
 
 		offset = end
 	}
 
-	return 0 // SQLITE_OK
+	return result
 }
 
-// RegisterTokenizer registers the Zemberek tokenizer with SQLite
-func RegisterTokenizer(db unsafe.Pointer, name string) error {
-	cName := C.CString(name)
-	defer C.free(unsafe.Pointer(cName))
+// TokenPosition represents a token with its position in the text
+type TokenPosition struct {
+	Token string
+	Start int
+	End   int
+}
 
-	rc := C.registerZemberekTokenizer((*C.sqlite3)(db), cName)
-	if rc != C.SQLITE_OK {
-		return ErrTokenizerRegistration
+// normalizeToken normalizes a token according to tokenizer settings
+func (z *ZemberekTokenizer) normalizeToken(token string) string {
+	result := token
+
+	// Remove diacritics if configured
+	if z.removeDiacritics {
+		result = removeTurkishDiacritics(result)
 	}
 
-	return nil
+	// Normalize case if configured
+	if z.normalizeCase {
+		result = turkishLowerCase(result)
+	}
+
+	return result
 }
 
-// ErrTokenizerRegistration is returned when tokenizer registration fails
-var ErrTokenizerRegistration = &TokenizerError{msg: "failed to register tokenizer"}
-
-// TokenizerError represents a tokenizer error
-type TokenizerError struct {
-	msg string
+// turkishLowerCase converts string to lowercase using Turkish rules
+func turkishLowerCase(s string) string {
+	var result strings.Builder
+	result.Grow(len(s))
+	for _, r := range s {
+		switch r {
+		case 'I':
+			result.WriteRune('ı')
+		case 'İ':
+			result.WriteRune('i')
+		default:
+			result.WriteRune(unicode.ToLower(r))
+		}
+	}
+	return result.String()
 }
 
-func (e *TokenizerError) Error() string {
-	return e.msg
+// TurkishUpperCase converts string to uppercase using Turkish rules
+func TurkishUpperCase(s string) string {
+	var result strings.Builder
+	result.Grow(len(s))
+	for _, r := range s {
+		switch r {
+		case 'i':
+			result.WriteRune('İ')
+		case 'ı':
+			result.WriteRune('I')
+		default:
+			result.WriteRune(unicode.ToUpper(r))
+		}
+	}
+	return result.String()
+}
+
+// removeTurkishDiacritics removes Turkish diacritical marks
+func removeTurkishDiacritics(s string) string {
+	var result strings.Builder
+	result.Grow(len(s))
+	for _, r := range s {
+		switch r {
+		case 'ç':
+			result.WriteRune('c')
+		case 'Ç':
+			result.WriteRune('C')
+		case 'ğ':
+			result.WriteRune('g')
+		case 'Ğ':
+			result.WriteRune('G')
+		case 'ı':
+			result.WriteRune('i')
+		case 'I':
+			result.WriteRune('I')
+		case 'İ':
+			result.WriteRune('I')
+		case 'ö':
+			result.WriteRune('o')
+		case 'Ö':
+			result.WriteRune('O')
+		case 'ş':
+			result.WriteRune('s')
+		case 'Ş':
+			result.WriteRune('S')
+		case 'ü':
+			result.WriteRune('u')
+		case 'Ü':
+			result.WriteRune('U')
+		default:
+			result.WriteRune(r)
+		}
+	}
+	return result.String()
+}
+
+// isPunctuation checks if a string contains only punctuation
+func isPunctuation(s string) bool {
+	for _, r := range s {
+		if !unicode.IsPunct(r) && !unicode.IsSymbol(r) {
+			return false
+		}
+	}
+	return len(s) > 0
+}
+
+// TokenizeText is a convenience function for quick tokenization
+func TokenizeText(text string) []string {
+	tokenizer := NewZemberekTokenizer()
+	return tokenizer.Tokenize(text)
+}
+
+// NormalizeForSearch normalizes text for FTS5 search queries
+// This ensures the search terms match how the text was indexed
+func NormalizeForSearch(query string) string {
+	tokenizer := NewZemberekTokenizer()
+	tokens := tokenizer.Tokenize(query)
+	return strings.Join(tokens, " ")
 }

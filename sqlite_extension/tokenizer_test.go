@@ -4,7 +4,9 @@ import (
 	"testing"
 )
 
-func TestTokenizeWithZemberek(t *testing.T) {
+func TestZemberekTokenizer_Tokenize(t *testing.T) {
+	tokenizer := NewZemberekTokenizer()
+
 	tests := []struct {
 		name     string
 		input    string
@@ -44,16 +46,7 @@ func TestTokenizeWithZemberek(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var tokens []string
-			callback := func(flags int, token string, start, end int) int {
-				tokens = append(tokens, token)
-				return 0 // SQLITE_OK
-			}
-
-			rc := tokenizeWithZemberek(tt.input, callback)
-			if rc != 0 {
-				t.Errorf("tokenizeWithZemberek() returned %d, want 0", rc)
-			}
+			tokens := tokenizer.Tokenize(tt.input)
 
 			if len(tokens) != len(tt.expected) {
 				t.Errorf("got %d tokens, want %d: %v", len(tokens), len(tt.expected), tokens)
@@ -69,77 +62,48 @@ func TestTokenizeWithZemberek(t *testing.T) {
 	}
 }
 
-func TestAdvancedTokenizer_Tokenize(t *testing.T) {
-	tokenizer, err := NewAdvancedTokenizer(true, false)
-	if err != nil {
-		t.Fatalf("NewAdvancedTokenizer() error = %v", err)
+func TestZemberekTokenizer_TokenizeWithPositions(t *testing.T) {
+	tokenizer := NewZemberekTokenizer()
+
+	input := "Merhaba dünya"
+	positions := tokenizer.TokenizeWithPositions(input)
+
+	if len(positions) != 2 {
+		t.Errorf("got %d tokens, want 2", len(positions))
+		return
 	}
 
-	tests := []struct {
-		name     string
-		input    string
-		expected []string
-	}{
-		{
-			name:     "Basic tokenization",
-			input:    "Türkçe metin",
-			expected: []string{"türkçe", "metin"},
-		},
-		{
-			name:     "With punctuation",
-			input:    "Merhaba, nasılsın?",
-			expected: []string{"merhaba", "nasılsın"},
-		},
+	// Check first token
+	if positions[0].Token != "merhaba" {
+		t.Errorf("positions[0].Token = %q, want %q", positions[0].Token, "merhaba")
+	}
+	if positions[0].Start != 0 || positions[0].End != 7 {
+		t.Errorf("positions[0] = {%d, %d}, want {0, 7}", positions[0].Start, positions[0].End)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var tokens []string
-			callback := func(flags int, token string, start, end int) int {
-				tokens = append(tokens, token)
-				return 0
-			}
-
-			rc := tokenizer.Tokenize(tt.input, callback)
-			if rc != 0 {
-				t.Errorf("Tokenize() returned %d, want 0", rc)
-			}
-
-			if len(tokens) != len(tt.expected) {
-				t.Errorf("got %d tokens, want %d: %v", len(tokens), len(tt.expected), tokens)
-				return
-			}
-
-			for i, token := range tokens {
-				if token != tt.expected[i] {
-					t.Errorf("token[%d] = %q, want %q", i, token, tt.expected[i])
-				}
-			}
-		})
+	// Check second token
+	if positions[1].Token != "dünya" {
+		t.Errorf("positions[1].Token = %q, want %q", positions[1].Token, "dünya")
 	}
 }
 
-func TestAdvancedTokenizer_TurkishLowerCase(t *testing.T) {
-	tokenizer, err := NewAdvancedTokenizer(true, false)
-	if err != nil {
-		t.Fatalf("NewAdvancedTokenizer() error = %v", err)
-	}
-
+func TestTurkishLowerCase(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected string
 	}{
-		{"ISTANBUL", "ıstanbul"},
-		{"İSTANBUL", "istanbul"},
-		{"ÇALIŞMA", "çalışma"},
-		{"ÖĞRENCI", "öğrenci"},
-		{"ABC", "abc"},
-		{"IiİıĞğÜüŞşÇçÖö", "iıiığğüüşşççöö"},
+		{"ISTANBUL", "ıstanbul"},     // I (U+0049) -> ı
+		{"İSTANBUL", "istanbul"},     // İ (U+0130) -> i
+		{"ÇALIŞMA", "çalışma"},       // Turkish chars
+		{"ÖĞRENCI", "öğrencı"},       // Last char is I (U+0049) -> ı
+		{"ÖĞRENCİ", "öğrenci"},       // Last char is İ (U+0130) -> i
+		{"ABC", "abc"},               // Normal ASCII
+		{"IiİıĞğÜüŞşÇçÖö", "ıiiığğüüşşççöö"}, // All combinations
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			result := tokenizer.turkishLowerCase(tt.input)
+			result := turkishLowerCase(tt.input)
 			if result != tt.expected {
 				t.Errorf("turkishLowerCase(%q) = %q, want %q", tt.input, result, tt.expected)
 			}
@@ -147,12 +111,30 @@ func TestAdvancedTokenizer_TurkishLowerCase(t *testing.T) {
 	}
 }
 
-func TestAdvancedTokenizer_RemoveTurkishDiacritics(t *testing.T) {
-	tokenizer, err := NewAdvancedTokenizer(false, true)
-	if err != nil {
-		t.Fatalf("NewAdvancedTokenizer() error = %v", err)
+func TestTurkishUpperCase(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"istanbul", "İSTANBUL"},
+		{"ıstanbul", "ISTANBUL"},
+		{"çalışma", "ÇALIŞMA"},
+		{"öğrenci", "ÖĞRENCİ"},
+		{"abc", "ABC"},
+		{"iıİIğĞüÜşŞçÇöÖ", "İIİIĞĞÜÜŞŞÇÇÖÖ"},
 	}
 
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := TurkishUpperCase(tt.input)
+			if result != tt.expected {
+				t.Errorf("TurkishUpperCase(%q) = %q, want %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestRemoveTurkishDiacritics(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected string
@@ -167,7 +149,7 @@ func TestAdvancedTokenizer_RemoveTurkishDiacritics(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			result := tokenizer.removeTurkishDiacritics(tt.input)
+			result := removeTurkishDiacritics(tt.input)
 			if result != tt.expected {
 				t.Errorf("removeTurkishDiacritics(%q) = %q, want %q", tt.input, result, tt.expected)
 			}
@@ -175,25 +157,13 @@ func TestAdvancedTokenizer_RemoveTurkishDiacritics(t *testing.T) {
 	}
 }
 
-func TestAdvancedTokenizer_WithDiacriticRemoval(t *testing.T) {
-	tokenizer, err := NewAdvancedTokenizer(true, true)
-	if err != nil {
-		t.Fatalf("NewAdvancedTokenizer() error = %v", err)
-	}
+func TestZemberekTokenizer_WithDiacriticRemoval(t *testing.T) {
+	tokenizer := NewZemberekTokenizerWithOptions(true, true)
 
 	input := "Çalışma öğrenci şehir"
 	expected := []string{"calisma", "ogrenci", "sehir"}
 
-	var tokens []string
-	callback := func(flags int, token string, start, end int) int {
-		tokens = append(tokens, token)
-		return 0
-	}
-
-	rc := tokenizer.Tokenize(input, callback)
-	if rc != 0 {
-		t.Errorf("Tokenize() returned %d, want 0", rc)
-	}
+	tokens := tokenizer.Tokenize(input)
 
 	if len(tokens) != len(expected) {
 		t.Errorf("got %d tokens, want %d: %v", len(tokens), len(expected), tokens)
@@ -235,31 +205,79 @@ func TestIsPunctuation(t *testing.T) {
 	}
 }
 
-func BenchmarkTokenizeWithZemberek(b *testing.B) {
-	text := "Bu bir Türkçe metin örneğidir. Zemberek, Türkçe doğal dil işleme kütüphanesidir. İstanbul, Türkiye'nin en büyük şehridir."
-	callback := func(flags int, token string, start, end int) int {
-		return 0
+func TestTokenizeText(t *testing.T) {
+	input := "Merhaba dünya"
+	expected := []string{"merhaba", "dünya"}
+
+	tokens := TokenizeText(input)
+
+	if len(tokens) != len(expected) {
+		t.Errorf("got %d tokens, want %d", len(tokens), len(expected))
+		return
 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		tokenizeWithZemberek(text, callback)
+	for i, token := range tokens {
+		if token != expected[i] {
+			t.Errorf("token[%d] = %q, want %q", i, token, expected[i])
+		}
 	}
 }
 
-func BenchmarkAdvancedTokenizer(b *testing.B) {
-	tokenizer, err := NewAdvancedTokenizer(true, true)
-	if err != nil {
-		b.Fatalf("NewAdvancedTokenizer() error = %v", err)
+func TestNormalizeForSearch(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"Merhaba Dünya", "merhaba dünya"},
+		{"TÜRKÇE", "türkçe"},
+		{"İstanbul, Ankara!", "istanbul ankara"},
+		{"  çok   boşluk  ", "çok boşluk"},
 	}
 
-	text := "Bu bir Türkçe metin örneğidir. Zemberek, Türkçe doğal dil işleme kütüphanesidir. İstanbul, Türkiye'nin en büyük şehridir."
-	callback := func(flags int, token string, start, end int) int {
-		return 0
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := NormalizeForSearch(tt.input)
+			if result != tt.expected {
+				t.Errorf("NormalizeForSearch(%q) = %q, want %q", tt.input, result, tt.expected)
+			}
+		})
 	}
+}
+
+func BenchmarkTokenize(b *testing.B) {
+	tokenizer := NewZemberekTokenizer()
+	text := "Bu bir Türkçe metin örneğidir. Zemberek, Türkçe doğal dil işleme kütüphanesidir. İstanbul, Türkiye'nin en büyük şehridir."
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		tokenizer.Tokenize(text, callback)
+		tokenizer.Tokenize(text)
+	}
+}
+
+func BenchmarkTokenizeWithPositions(b *testing.B) {
+	tokenizer := NewZemberekTokenizer()
+	text := "Bu bir Türkçe metin örneğidir. Zemberek, Türkçe doğal dil işleme kütüphanesidir. İstanbul, Türkiye'nin en büyük şehridir."
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		tokenizer.TokenizeWithPositions(text)
+	}
+}
+
+func BenchmarkTurkishLowerCase(b *testing.B) {
+	text := "ISTANBUL İSTANBUL ÇALIŞMA ÖĞRENCI"
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		turkishLowerCase(text)
+	}
+}
+
+func BenchmarkRemoveDiacritics(b *testing.B) {
+	text := "çalışma öğrenci şehir ığüöç"
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		removeTurkishDiacritics(text)
 	}
 }
