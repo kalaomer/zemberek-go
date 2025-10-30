@@ -1,0 +1,14 @@
+# Build artifacts
+*.o
+*.so
+*.a
+*.h
+libzemberek_go.a
+libzemberek_go.h
+
+# PostgreSQL extension artifacts
+*.bc
+results/
+regression.diffs
+regression.out
+tmp_check/
