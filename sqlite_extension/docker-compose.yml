@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # Development environment
+  dev:
+    build:
+      context: ..
+      dockerfile: sqlite_extension/Dockerfile
+    volumes:
+      - .:/app/sqlite_extension
+      - ../morphology:/app/morphology
+      - go-cache:/go/pkg
+    environment:
+      - CGO_ENABLED=1
+    working_dir: /app/sqlite_extension
+    command: /bin/sh
+
+  # Run tests
+  test:
+    build:
+      context: ..
+      dockerfile: sqlite_extension/Dockerfile
+      target: builder
+    working_dir: /build/sqlite_extension
+    environment:
+      - CGO_ENABLED=1
+    command: sh -c "CGO_ENABLED=1 go test -tags fts5 -v ./tokenizer ./driver"
+
+  # Run basic example
+  basic:
+    build:
+      context: ..
+      dockerfile: sqlite_extension/Dockerfile
+    command: /app/basic
+
+  # Run search example
+  search:
+    build:
+      context: ..
+      dockerfile: sqlite_extension/Dockerfile
+    command: /app/search
+
+  # Build static binaries and extract them
+  build-static:
+    build:
+      context: ..
+      dockerfile: sqlite_extension/Dockerfile
+      target: builder
+    volumes:
+      - ./dist:/build/bin
+    command: >
+      sh -c "
+        CGO_ENABLED=1 go build -tags fts5 -ldflags '-w -s -extldflags \"-static\"' -o /build/bin/basic ./examples/basic/main.go &&
+        CGO_ENABLED=1 go build -tags fts5 -ldflags '-w -s -extldflags \"-static\"' -o /build/bin/search ./examples/search/main.go &&
+        echo 'Static binaries built in ./dist/'
+      "
+
+volumes:
+  go-cache:
+    driver: local

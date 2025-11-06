@@ -1,0 +1,47 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Build artifacts
+*.o
+*.a
+*.so
+*.dylib
+*.exe
+*.test
+*.out
+dist/
+bin/
+
+# Go
+vendor/
+go.sum
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation (not needed in build)
+*.md
+docs/
+
+# Test cache
+.cache/
+
+# Temporary files
+tmp/
+temp/
+*.tmp

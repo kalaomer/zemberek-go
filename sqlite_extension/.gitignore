@@ -1,0 +1,41 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+examples/basic/basic
+examples/search/search
+
+# Test binary
+*.test
+*.out
+
+# Go workspace
+go.work
+go.work.sum
+
+# Build artifacts
+dist/
+bin/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# SQLite databases (from tests/examples)
+*.db
+*.db-shm
+*.db-wal
+
+# Cache
+.cache/
+tmp/
+temp/
