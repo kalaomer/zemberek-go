@@ -146,15 +146,30 @@ func stemWord(word string, morphology *TurkishMorphology) string {
 
 	analysis := morphology.Analyze(word)
 	if len(analysis.AnalysisResults) > 0 {
-		// Select the SHORTEST root among all analyses
-		// This helps avoid ambiguous cases like "arabanın":
-		//   - "araban" (person name, 6 chars)
-		//   - "araba" (car, 5 chars) ← CORRECT (shortest)
+		// Select best root using two-stage strategy:
+		// 1. FEWEST morphemes (prefer base forms with fewer affixes)
+		// 2. SHORTEST root (tie-breaker when morpheme counts are equal)
+		//
+		// Examples:
+		//   "araba":
+		//     [0] araba (1 morpheme) ← SELECTED (fewest morphemes)
+		//     [1] araba (2 morphemes)
+		//     [2] arap (3 morphemes, shorter but more complex parse)
+		//
+		//   "arabanın":
+		//     [0] araban (6 chars, 3 morphemes)
+		//     [2] araba (5 chars, 3 morphemes) ← SELECTED (same morphemes, shorter)
+		//
+		//   "insandan":
+		//     [0] insan (5 chars, 3 morphemes) ← SELECTED (fewer morphemes)
+		//     [1] insa (4 chars, 4 morphemes) - shorter but more complex
 		var bestRoot string
+		fewestMorphemes := -1
 		shortestLen := -1
 
 		for _, a := range analysis.AnalysisResults {
 			var candidateRoot string
+			morphemeCount := len(a.MorphemeDataList)
 
 			// Use dictionary item root for correct voicing handling
 			// Example: "kitabı" -> item.Root = "kitap" (not surface "kitab")
@@ -166,8 +181,12 @@ func stemWord(word string, morphology *TurkishMorphology) string {
 			}
 
 			if candidateRoot != "" {
-				if shortestLen == -1 || len(candidateRoot) < shortestLen {
+				// Select if: 1) fewer morphemes OR 2) same morphemes but shorter
+				if fewestMorphemes == -1 ||
+					morphemeCount < fewestMorphemes ||
+					(morphemeCount == fewestMorphemes && len(candidateRoot) < shortestLen) {
 					bestRoot = candidateRoot
+					fewestMorphemes = morphemeCount
 					shortestLen = len(candidateRoot)
 				}
 			}
