@@ -34,9 +34,6 @@ COPY core /build/core
 # Copy sqlite_extension source
 COPY sqlite_extension .
 
-# Copy Zemberek data files (lexicon, etc.)
-COPY morphology/lexicon/data /build/data
-
 # Build binaries for examples
 RUN mkdir -p /build/bin && \
     CGO_ENABLED=1 go build \
