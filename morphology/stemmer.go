@@ -146,18 +146,35 @@ func stemWord(word string, morphology *TurkishMorphology) string {
 
 	analysis := morphology.Analyze(word)
 	if len(analysis.AnalysisResults) > 0 {
-		firstAnalysis := analysis.AnalysisResults[0]
+		// Select the SHORTEST root among all analyses
+		// This helps avoid ambiguous cases like "arabanın":
+		//   - "araban" (person name, 6 chars)
+		//   - "araba" (car, 5 chars) ← CORRECT (shortest)
+		var bestRoot string
+		shortestLen := -1
 
-		// Use dictionary item root for correct voicing handling
-		// Example: "kitabı" -> item.Root = "kitap" (not surface "kitab")
-		if firstAnalysis.Item != nil && firstAnalysis.Item.Root != "" {
-			stem = firstAnalysis.Item.Root
-		} else {
-			// Fallback to surface stem if no dictionary item
-			extractedStem := firstAnalysis.GetStem()
-			if extractedStem != "" {
-				stem = extractedStem
+		for _, a := range analysis.AnalysisResults {
+			var candidateRoot string
+
+			// Use dictionary item root for correct voicing handling
+			// Example: "kitabı" -> item.Root = "kitap" (not surface "kitab")
+			if a.Item != nil && a.Item.Root != "" {
+				candidateRoot = a.Item.Root
+			} else {
+				// Fallback to surface stem if no dictionary item
+				candidateRoot = a.GetStem()
 			}
+
+			if candidateRoot != "" {
+				if shortestLen == -1 || len(candidateRoot) < shortestLen {
+					bestRoot = candidateRoot
+					shortestLen = len(candidateRoot)
+				}
+			}
+		}
+
+		if bestRoot != "" {
+			stem = bestRoot
 		}
 	}
 
