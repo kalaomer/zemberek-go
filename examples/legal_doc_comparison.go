@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kalaomer/zemberek-go/core/turkish"
 	"github.com/kalaomer/zemberek-go/morphology"
 )
 
@@ -35,8 +36,8 @@ Dosyadaki yazılara, kararın dayandığı delillerle yasaya uygun gerektirici n
 
 	fmt.Printf("Initialization time: %v\n\n", initDuration)
 
-	// Normalize text (simple lowercase for comparison)
-	normalized := strings.ToLower(text)
+	// Normalize text (Turkish lowercase for comparison)
+	normalized := turkish.Instance.ToLower(text)
 
 	// Analyze words
 	startAnalysis := time.Now()

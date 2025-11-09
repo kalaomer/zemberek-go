@@ -2,6 +2,8 @@ package normalization
 
 import (
 	"strings"
+
+	"github.com/kalaomer/zemberek-go/core/turkish"
 )
 
 // TurkishSentenceNormalizerEnhanced is an improved normalizer with lookup tables and dictionary support
@@ -102,7 +104,7 @@ func (tsne *TurkishSentenceNormalizerEnhanced) Normalize(sentence string) string
 func (tsne *TurkishSentenceNormalizerEnhanced) normalizeWord(word string) string {
 	// Keep original casing info
 	isCapitalized := len(word) > 0 && isUpper(rune(word[0]))
-	lowerWord := strings.ToLower(word)
+	lowerWord := turkish.Instance.ToLower(word)
 
 	// 1. Check manual lookup first (highest priority)
 	if candidates, ok := tsne.LookupManual[lowerWord]; ok && len(candidates) > 0 {
@@ -288,7 +290,7 @@ func toUpper(r rune) rune {
 
 func isLikelyDomain(s string) bool {
 	// Check if string looks like a domain (contains .com, .org, etc.)
-	lowerS := strings.ToLower(s)
+	lowerS := turkish.Instance.ToLower(s)
 	return strings.HasSuffix(lowerS, ".com") ||
 		   strings.HasSuffix(lowerS, ".org") ||
 		   strings.HasSuffix(lowerS, ".net") ||

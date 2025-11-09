@@ -12,6 +12,9 @@ type TurkishAlphabet struct {
 	Lowercase             string
 	Uppercase             string
 	AllLetters            string
+	Digits                string // "0123456789"
+	AllLettersAndDigits   string // Digits + AllLetters for regex patterns
+	AllLettersDigitsUnderscore string // Digits + AllLetters + "_" for regex patterns
 	VowelsLowercase       string
 	VowelsUppercase       string
 	Vowels                map[rune]bool
@@ -69,9 +72,12 @@ func NewTurkishAlphabet() *TurkishAlphabet {
 		ForeignDiacriticsMap: make(map[rune]rune),
 	}
 
-	// Generate uppercase
+	// Generate uppercase and combined character sets
 	ta.Uppercase = turkishUpper(ta.Lowercase)
 	ta.AllLetters = ta.Lowercase + ta.Uppercase
+	ta.Digits = "0123456789"
+	ta.AllLettersAndDigits = ta.Digits + ta.AllLetters
+	ta.AllLettersDigitsUnderscore = ta.Digits + ta.AllLetters + "_"
 	ta.VowelsUppercase = turkishUpper(ta.VowelsLowercase)
 
 	// Create vowels map
@@ -162,6 +168,22 @@ func turkishLower(s string) string {
 // IsTurkishSpecific returns true if the character is Turkish specific
 func (ta *TurkishAlphabet) IsTurkishSpecific(c rune) bool {
 	return ta.TurkishSpecificLookup[c]
+}
+
+// IsTurkishLetter returns true if the rune is a Turkish letter (including ASCII and Turkish-specific)
+// Covers: a-z, A-Z, ç, ğ, ı, İ, ö, ş, ü, Ç, Ğ, Ö, Ş, Ü, â, î, û, Â, Î, Û
+func (ta *TurkishAlphabet) IsTurkishLetter(r rune) bool {
+	// Check ASCII letters first (fast path)
+	if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') {
+		return true
+	}
+	// Use existing TurkishSpecificLookup map for Turkish-specific letters
+	return ta.TurkishSpecificLookup[r]
+}
+
+// IsDigit returns true if the rune is a digit (0-9)
+func IsDigit(r rune) bool {
+	return r >= '0' && r <= '9'
 }
 
 // ContainsASCIIRelated returns true if the string contains ASCII related characters

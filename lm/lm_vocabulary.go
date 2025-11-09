@@ -4,8 +4,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"strings"
 
+	"github.com/kalaomer/zemberek-go/core/turkish"
 )
 
 const (
@@ -92,7 +92,7 @@ func (lv *LmVocabulary) generateMap(inputVocabulary []string) {
 		if _, exists := lv.VocabularyIndexMap[word]; exists {
 			fmt.Printf("Warning: Language model vocabulary has duplicate item: %s\n", word)
 		} else {
-			lower := strings.ToLower(turkishLowerMap(word))
+			lower := turkish.Instance.ToLower(word)
 
 			if lower == "<unk>" {
 				if lv.UnknownWordIndex != -1 {
@@ -149,20 +149,4 @@ func (lv *LmVocabulary) generateMap(inputVocabulary []string) {
 
 	lv.SentenceEndIndex = lv.VocabularyIndexMap[lv.SentenceEnd]
 	lv.Vocabulary = cleanVocab
-}
-
-func turkishLowerMap(s string) string {
-	var result strings.Builder
-	for _, r := range s {
-		if r == 'I' {
-			result.WriteRune('ı')
-		} else if r == 'İ' {
-			result.WriteRune('i')
-		} else {
-			for _, c := range strings.ToLower(string(r)) {
-				result.WriteRune(c)
-			}
-		}
-	}
-	return result.String()
 }

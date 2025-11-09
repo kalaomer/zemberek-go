@@ -2,6 +2,8 @@ package morphology
 
 import (
 	"testing"
+
+	"github.com/kalaomer/zemberek-go/tokenization"
 )
 
 func TestStemTextWithPositions_Basic(t *testing.T) {
@@ -153,52 +155,8 @@ func TestStemTextWithPositions_Apostrophe(t *testing.T) {
 	}
 }
 
-func TestIsWordChar(t *testing.T) {
-	tests := []struct {
-		char     rune
-		expected bool
-	}{
-		{'a', true},
-		{'Z', true},
-		{'ş', true},
-		{'İ', true},
-		{'5', true},
-		{'\'', true},
-		{' ', false},
-		{'.', false},
-		{',', false},
-		{'!', false},
-	}
-
-	for _, tt := range tests {
-		result := isWordChar(tt.char)
-		if result != tt.expected {
-			t.Errorf("isWordChar('%c') = %v, expected %v", tt.char, result, tt.expected)
-		}
-	}
-}
-
-func TestIsWordToken(t *testing.T) {
-	tests := []struct {
-		token    string
-		expected bool
-	}{
-		{"kitap", true},
-		{"123abc", true},
-		{"Ali'nin", true},
-		{"123", false},    // only digits
-		{"...", false},    // only punctuation
-		{"", false},       // empty
-		{"test123", true}, // mixed
-	}
-
-	for _, tt := range tests {
-		result := isWordToken(tt.token)
-		if result != tt.expected {
-			t.Errorf("isWordToken('%s') = %v, expected %v", tt.token, result, tt.expected)
-		}
-	}
-}
+// Removed: isWordChar and isWordToken tests - these functions no longer exist
+// We now use TurkishTokenizer for all tokenization
 
 func BenchmarkStemTextWithPositions(b *testing.B) {
 	morph := CreateWithDefaults()
@@ -315,5 +273,101 @@ func TestStemTextWithPositions_VoicingComparison(t *testing.T) {
 					token.Original, token.Stem, expected)
 			}
 		}
+	}
+}
+
+func TestStemTextWithPositions_ComplexLegalText(t *testing.T) {
+	morph := CreateWithDefaults()
+
+	// Complex legal text with various token types:
+	// - Abbreviations: T.C., k., m.
+	// - Apostrophes: İstanbul'dan
+	// - Numbers: 16., 1234/567, e.4321/8765, 43, 123/a
+	// - Parentheses: (detay bilgi), ve(daha çok bilgi)
+	// - Email: foo@bar.com
+	// - Words: mahkemesi, kanunları
+	text := "T.C. İstanbul'dan 16. mahkemesi tc Hmk hmk 1.sıralar mahkeme mahkemeler (detay bilgi) ve(daha çok bilgi) k. 1234/567 e.4321/8765 kanunları m. 43 123/a foo@bar.com CMUK.nun"
+
+	tokens := StemTextWithPositions(text, morph)
+
+	t.Logf("Input text: %s", text)
+	t.Logf("Total tokens returned: %d", len(tokens))
+	t.Logf("\nToken breakdown:")
+
+	// Print all tokens with details
+	for i, token := range tokens {
+		extracted := text[token.StartByte:token.EndByte]
+		match := "✓"
+		if extracted != token.Original {
+			match = "✗ MISMATCH"
+		}
+		t.Logf("  [%2d] %-20s -> %-15s Type: %-20s [%3d:%3d] %s",
+			i+1,
+			"'"+token.Original+"'",
+			"'"+token.Stem+"'",
+			tokenization.TokenTypeName(token.Type),
+			token.StartByte,
+			token.EndByte,
+			match)
+	}
+
+	// Validate byte offsets for all tokens
+	for _, token := range tokens {
+		extracted := text[token.StartByte:token.EndByte]
+		if extracted != token.Original {
+			t.Errorf("Byte offset mismatch: extracted '%s', expected '%s' [%d:%d]",
+				extracted, token.Original, token.StartByte, token.EndByte)
+		}
+	}
+
+	// Verify specific expected tokens are present
+	expectedTokens := []struct {
+		original string
+		minCount int
+		reason   string
+	}{
+		{"T.C.", 1, "abbreviation with dots"},
+		{"İstanbul'dan", 1, "word with apostrophe"},
+		{"mahkemesi", 1, "regular word"},
+		{"m.", 1, "madde abbreviation (newly added)"},
+		{"e.", 1, "esas abbreviation (from dict)"},
+		{"kanunları", 1, "plural word"},
+		{"foo@bar.com", 1, "email address"},
+		{"1234/567", 1, "case number (preserved as Number)"},
+		// Note: "k." is NOT in abbreviations.txt, so it appears as "k" (Word) + "." (Punctuation filtered)
+	}
+
+	for _, expected := range expectedTokens {
+		found := false
+		for _, token := range tokens {
+			if token.Original == expected.original {
+				found = true
+				break
+			}
+		}
+		if !found && expected.minCount > 0 {
+			t.Errorf("Expected token '%s' (%s) not found in results",
+				expected.original, expected.reason)
+		}
+	}
+
+	// Verify punctuation is filtered
+	for _, token := range tokens {
+		if token.Original == "(" || token.Original == ")" || token.Original == "." {
+			t.Errorf("Punctuation token '%s' should be filtered but was included",
+				token.Original)
+		}
+	}
+
+	// Log token counts by type
+	typeCounts := make(map[string]int)
+	for _, token := range tokens {
+		typeName := tokenization.TokenTypeName(token.Type)
+		typeCounts[typeName]++
+	}
+
+	t.Logf("\nToken counts by type:")
+	for typeName, count := range typeCounts {
+		t.Logf("  %s: %d", typeName, count)
 	}
 }

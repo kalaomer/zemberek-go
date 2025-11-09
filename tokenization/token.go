@@ -139,3 +139,36 @@ func TokenTypeName(t TokenType) string {
 		return fmt.Sprintf("Unknown(%d)", t)
 	}
 }
+
+// Helper methods for token type checking (matches Java implementation)
+
+// IsNumeral returns true if token is a number type
+func (t *Token) IsNumeral() bool {
+	return t.Type == Number || t.Type == RomanNumeral || t.Type == PercentNumeral
+}
+
+// IsWhiteSpace returns true if token is whitespace
+func (t *Token) IsWhiteSpace() bool {
+	return t.Type == SpaceTab || t.Type == NewLine
+}
+
+// IsWebRelated returns true if token is web-related (URL, Email, HashTag, Mention, MetaTag)
+func (t *Token) IsWebRelated() bool {
+	return t.Type == HashTag || t.Type == Mention ||
+		t.Type == URL || t.Type == MetaTag || t.Type == Email
+}
+
+// IsEmoji returns true if token is emoji or emoticon
+func (t *Token) IsEmoji() bool {
+	return t.Type == Emoji || t.Type == Emoticon
+}
+
+// IsUnidentified returns true if token type is unknown
+func (t *Token) IsUnidentified() bool {
+	return t.Type == Unknown || t.Type == UnknownWord
+}
+
+// IsWord returns true if token is a word or abbreviation
+func (t *Token) IsWord() bool {
+	return t.Type == Word || t.Type == Abbreviation
+}

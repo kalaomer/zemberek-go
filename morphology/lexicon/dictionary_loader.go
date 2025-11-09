@@ -272,7 +272,7 @@ func BuildWordSet(items []*DictionaryItem) map[string]bool {
 		if item.Lemma != "" {
 			wordSet[item.Lemma] = true
 			// Also add lowercase version
-			wordSet[strings.ToLower(item.Lemma)] = true
+			wordSet[turkish.Instance.ToLower(item.Lemma)] = true
 		}
 	}
 	return wordSet

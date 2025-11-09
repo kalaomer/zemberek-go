@@ -3,6 +3,7 @@ package normalization
 import (
 	"strings"
 
+	"github.com/kalaomer/zemberek-go/core/turkish"
 	"github.com/kalaomer/zemberek-go/morphology/lexicon"
 )
 
@@ -41,7 +42,7 @@ func NewTurkishSentenceNormalizerWithLexicon() (*TurkishSentenceNormalizerWithLe
 	for _, item := range allItems {
 		if item.Lemma != "" {
 			wordDict[item.Lemma] = true
-			wordDict[strings.ToLower(item.Lemma)] = true
+			wordDict[turkish.Instance.ToLower(item.Lemma)] = true
 		}
 	}
 
@@ -49,7 +50,7 @@ func NewTurkishSentenceNormalizerWithLexicon() (*TurkishSentenceNormalizerWithLe
 	for _, candidates := range lookupManual {
 		for _, word := range candidates {
 			wordDict[word] = true
-			wordDict[strings.ToLower(word)] = true
+			wordDict[turkish.Instance.ToLower(word)] = true
 		}
 	}
 
@@ -110,7 +111,7 @@ func (tsnl *TurkishSentenceNormalizerWithLexicon) Normalize(sentence string) str
 // normalizeWord normalizes a single word
 func (tsnl *TurkishSentenceNormalizerWithLexicon) normalizeWord(word string) string {
 	isCapitalized := len(word) > 0 && isUpper(rune(word[0]))
-	lowerWord := strings.ToLower(word)
+	lowerWord := turkish.Instance.ToLower(word)
 
 	// 1. Manual lookup (highest priority)
 	if candidates, ok := tsnl.LookupManual[lowerWord]; ok && len(candidates) > 0 {

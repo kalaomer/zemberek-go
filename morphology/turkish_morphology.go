@@ -113,7 +113,7 @@ func (tm *TurkishMorphology) Analyze(word string) *analysis.WordAnalysis {
 // NormalizeForAnalysis normalizes word for analysis
 func (tm *TurkishMorphology) NormalizeForAnalysis(word string) string {
 	// Convert to lowercase using Turkish rules
-	s := strings.ToLower(word)
+	s := turkish.Instance.ToLower(word)
 
 	// Remove dots
 	noDot := strings.ReplaceAll(s, ".", "")

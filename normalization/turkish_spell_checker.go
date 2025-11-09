@@ -117,7 +117,7 @@ func (tsc *TurkishSpellChecker) rankByEditDistance(original string, suggestions 
 	for i, suggestion := range suggestions {
 		scored[i] = scoredSuggestion{
 			word:     suggestion,
-			distance: levenshteinDistance(strings.ToLower(original), strings.ToLower(suggestion)),
+			distance: levenshteinDistance(turkish.Instance.ToLower(original), turkish.Instance.ToLower(suggestion)),
 		}
 	}
 
@@ -293,7 +293,7 @@ func formatToCase(word string, caseType CaseType) string {
 
 	switch caseType {
 	case LowerCase:
-		return strings.ToLower(word)
+		return turkish.Instance.ToLower(word)
 	case UpperCase:
 		return strings.ToUpper(word)
 	case TitleCase:
@@ -380,7 +380,7 @@ func NormalizeForLM(s string) string {
 		return turkish.Capitalize(s)
 	}
 	// Otherwise lowercase
-	return strings.ToLower(s)
+	return turkish.Instance.ToLower(s)
 }
 
 // GetApostrophe returns the apostrophe character used in word
