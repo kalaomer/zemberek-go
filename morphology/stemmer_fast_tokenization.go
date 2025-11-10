@@ -39,10 +39,23 @@ func tokenizeFast(text string) []*tokenization.Token {
 
 		// Detect token type and extract
 		if turkish.Instance.IsTurkishLetter(r) {
-			// Word token (Turkish letters)
-			token := extractWord(runes, pos)
-			tokens = append(tokens, token)
-			pos = token.End + 1
+			// Check if this might be an email (word followed by @)
+			// Quick scan ahead to see if there's an @ after the word
+			tempPos := pos
+			for tempPos < len(runes) && turkish.Instance.IsTurkishLetter(runes[tempPos]) {
+				tempPos++
+			}
+			if tempPos < len(runes) && runes[tempPos] == '@' {
+				// This is an email! Extract it
+				token := extractEmail(runes, pos)
+				tokens = append(tokens, token)
+				pos = token.End + 1
+			} else {
+				// Regular word token
+				token := extractWord(runes, pos)
+				tokens = append(tokens, token)
+				pos = token.End + 1
+			}
 
 		} else if unicode.IsDigit(r) {
 			// Number token
@@ -70,7 +83,7 @@ func tokenizeFast(text string) []*tokenization.Token {
 }
 
 // extractWord extracts a word token starting at pos.
-// Handles: Turkish letters, apostrophes within words (e.g., "Anayasa'nın")
+// Handles: Turkish letters, apostrophes, abbreviations with dots (e.g., "T.C.", "m.")
 func extractWord(runes []rune, startPos int) *tokenization.Token {
 	pos := startPos
 
@@ -87,6 +100,41 @@ func extractWord(runes []rune, startPos int) *tokenization.Token {
 			// Scan suffix letters
 			for pos < len(runes) && turkish.Instance.IsTurkishLetter(runes[pos]) {
 				pos++
+			}
+		}
+	}
+
+	// Check for abbreviation with dots: "T.C.", "m.", "e."
+	// Pattern: 1-2 letters + dot (+ optional more letters + dot)
+	if pos < len(runes) && runes[pos] == '.' {
+		wordLen := pos - startPos
+
+		// Check for multi-letter abbreviation with dots first: "T.C."
+		// Pattern: Letter.Letter. (e.g., "T.C.", "A.B.")
+		if wordLen == 1 {
+			tempPos := pos + 1 // Skip the first dot
+			// Look for: Letter.Letter. pattern
+			if tempPos < len(runes) && turkish.Instance.IsTurkishLetter(runes[tempPos]) {
+				tempPos++ // Move past the letter
+				// Check for another dot
+				if tempPos < len(runes) && runes[tempPos] == '.' {
+					// This is "T.C." pattern!
+					pos = tempPos + 1 // Include everything up to second dot
+					return &tokenization.Token{
+						Content: string(runes[startPos:pos]),
+						Type:    tokenization.AbbreviationWithDots,
+						Start:   startPos,
+						End:     pos - 1,
+					}
+				}
+			}
+			// Not "T.C." pattern, just single letter abbreviation: "m.", "e.", "k."
+			pos++ // Include the dot
+			return &tokenization.Token{
+				Content: string(runes[startPos:pos]),
+				Type:    tokenization.Abbreviation,
+				Start:   startPos,
+				End:     pos - 1,
 			}
 		}
 	}
@@ -115,8 +163,45 @@ func extractWord(runes []rune, startPos int) *tokenization.Token {
 	}
 }
 
+// extractEmail extracts an email token starting at pos.
+// Handles: simple emails (e.g., "foo@bar.com", "user@example.org")
+func extractEmail(runes []rune, startPos int) *tokenization.Token {
+	pos := startPos
+
+	// Scan username part (letters, digits, dots, underscores)
+	for pos < len(runes) && (turkish.Instance.IsTurkishLetter(runes[pos]) ||
+		unicode.IsDigit(runes[pos]) || runes[pos] == '.' || runes[pos] == '_') {
+		pos++
+	}
+
+	// Must have @ symbol
+	if pos >= len(runes) || runes[pos] != '@' {
+		// Not an email, return as word
+		return &tokenization.Token{
+			Content: string(runes[startPos:pos]),
+			Type:    tokenization.Word,
+			Start:   startPos,
+			End:     pos - 1,
+		}
+	}
+	pos++ // Skip @
+
+	// Scan domain part (letters, digits, dots, hyphens)
+	for pos < len(runes) && (turkish.Instance.IsTurkishLetter(runes[pos]) ||
+		unicode.IsDigit(runes[pos]) || runes[pos] == '.' || runes[pos] == '-') {
+		pos++
+	}
+
+	return &tokenization.Token{
+		Content: string(runes[startPos:pos]),
+		Type:    tokenization.Email,
+		Start:   startPos,
+		End:     pos - 1,
+	}
+}
+
 // extractNumber extracts a number token starting at pos.
-// Handles: integers, decimals (e.g., "123", "45.67", "2023")
+// Handles: integers, decimals, numbers with slash (e.g., "123", "45.67", "1234/567")
 func extractNumber(runes []rune, startPos int) *tokenization.Token {
 	pos := startPos
 
@@ -132,6 +217,18 @@ func extractNumber(runes []rune, startPos int) *tokenization.Token {
 			pos++ // Include decimal point
 			// Scan fractional part
 			for pos < len(runes) && unicode.IsDigit(runes[pos]) {
+				pos++
+			}
+		}
+	}
+
+	// Handle slash for case numbers: "1234/567", "123/a"
+	if pos < len(runes) && runes[pos] == '/' {
+		// Look ahead for more digits or letters after slash
+		if pos+1 < len(runes) && (unicode.IsDigit(runes[pos+1]) || turkish.Instance.IsTurkishLetter(runes[pos+1])) {
+			pos++ // Include slash
+			// Scan digits or letters after slash
+			for pos < len(runes) && (unicode.IsDigit(runes[pos]) || turkish.Instance.IsTurkishLetter(runes[pos])) {
 				pos++
 			}
 		}
