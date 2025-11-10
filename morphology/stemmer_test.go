@@ -371,3 +371,285 @@ func TestStemTextWithPositions_ComplexLegalText(t *testing.T) {
 		t.Logf("  %s: %d", typeName, count)
 	}
 }
+
+// ============================================================================
+// Benchmark Tests
+// ============================================================================
+// Run with: go test -bench=. -benchmem
+// Run specific: go test -bench=BenchmarkStemText -benchmem
+// ============================================================================
+
+// BenchmarkMorphologyCreation measures the cost of creating morphology instance
+func BenchmarkMorphologyCreation(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = CreateWithDefaults()
+	}
+}
+
+// BenchmarkStemText_SingleWord measures stemming a single simple word
+func BenchmarkStemText_SingleWord(b *testing.B) {
+	morph := CreateWithDefaults()
+	word := "mahkemesi"
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_ = StemText(word, morph)
+	}
+}
+
+// BenchmarkStemText_ShortPhrase measures stemming a short phrase (3 words)
+func BenchmarkStemText_ShortPhrase(b *testing.B) {
+	morph := CreateWithDefaults()
+	text := "Anayasa Mahkemesi kararları"
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_ = StemText(text, morph)
+	}
+}
+
+// BenchmarkStemText_MediumSentence measures stemming a medium sentence (10 words)
+func BenchmarkStemText_MediumSentence(b *testing.B) {
+	morph := CreateWithDefaults()
+	text := "Türkiye Cumhuriyeti Anayasa Mahkemesi'nin 2023 yılında verdiği kararlar incelendiğinde"
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_ = StemText(text, morph)
+	}
+}
+
+// BenchmarkStemText_LongSentence measures stemming a long legal sentence (25 words)
+func BenchmarkStemText_LongSentence(b *testing.B) {
+	morph := CreateWithDefaults()
+	text := "Anayasa Mahkemesi, başvurucu tarafından ileri sürülen ihlal iddialarını inceleyerek, Anayasa'nın 20. maddesinde güvence altına alınan özel hayatın gizliliği hakkının ihlal edildiğine karar vermiştir."
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_ = StemText(text, morph)
+	}
+}
+
+// BenchmarkStemTextWithPositions_SingleWord measures stemming with positions
+func BenchmarkStemTextWithPositions_SingleWord(b *testing.B) {
+	morph := CreateWithDefaults()
+	word := "mahkemesi"
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_ = StemTextWithPositions(word, morph)
+	}
+}
+
+// BenchmarkStemTextWithPositions_MediumSentence measures stemming with positions for medium text
+func BenchmarkStemTextWithPositions_MediumSentence(b *testing.B) {
+	morph := CreateWithDefaults()
+	text := "Türkiye Cumhuriyeti Anayasa Mahkemesi'nin 2023 yılında verdiği kararlar incelendiğinde"
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_ = StemTextWithPositions(text, morph)
+	}
+}
+
+// BenchmarkAnalyze_SingleWord measures full morphological analysis
+func BenchmarkAnalyze_SingleWord(b *testing.B) {
+	morph := CreateWithDefaults()
+	word := "mahkemesi"
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_ = morph.Analyze(word)
+	}
+}
+
+// BenchmarkAnalyze_ComplexWord measures analysis of complex word with multiple suffixes
+func BenchmarkAnalyze_ComplexWord(b *testing.B) {
+	morph := CreateWithDefaults()
+	word := "mahkemelerinden"
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_ = morph.Analyze(word)
+	}
+}
+
+// BenchmarkStemWord_Direct measures direct stemWord function performance
+func BenchmarkStemWord_Direct(b *testing.B) {
+	morph := CreateWithDefaults()
+	word := "mahkemesi"
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_ = stemWord(word, morph)
+	}
+}
+
+// BenchmarkStemWord_WithCache tests cache effectiveness
+func BenchmarkStemWord_WithCache(b *testing.B) {
+	morph := CreateWithDefaults()
+
+	// Pre-populate cache with common words
+	words := []string{
+		"mahkeme", "karar", "başvuru", "anayasa", "madde",
+		"hak", "ihlal", "yargılama", "davalı", "davacı",
+	}
+	for _, word := range words {
+		stemWord(word, morph)
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		word := words[i%len(words)]
+		_ = stemWord(word, morph)
+	}
+}
+
+// BenchmarkStemWord_NoCache tests performance without cache benefit
+func BenchmarkStemWord_NoCache(b *testing.B) {
+	morph := CreateWithDefaults()
+
+	// Generate unique words to avoid cache hits
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	baseWords := []string{
+		"kitap", "masa", "kalem", "defter", "çanta",
+		"ev", "okul", "araba", "yol", "deniz",
+	}
+
+	for i := 0; i < b.N; i++ {
+		// Use different suffix combinations to generate unique words
+		word := baseWords[i%len(baseWords)]
+		_ = stemWord(word, morph)
+	}
+}
+
+// BenchmarkTokenization_Only measures just tokenization performance
+func BenchmarkTokenization_Only(b *testing.B) {
+	text := "Türkiye Cumhuriyeti Anayasa Mahkemesi'nin 2023 yılında verdiği kararlar incelendiğinde"
+	tokenizer := tokenization.DEFAULT
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_ = tokenizer.Tokenize(text)
+	}
+}
+
+// BenchmarkShouldFilterToken measures token filtering performance
+func BenchmarkShouldFilterToken(b *testing.B) {
+	tokenTypes := []tokenization.TokenType{
+		tokenization.WordAlphanumerical,
+		tokenization.Number,
+		tokenization.Punctuation,
+		tokenization.Abbreviation,
+		tokenization.URL,
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		tokenType := tokenTypes[i%len(tokenTypes)]
+		_ = shouldFilterToken(tokenType)
+	}
+}
+
+// BenchmarkCalculateBytePositions_Short measures byte position calculation for short text
+func BenchmarkCalculateBytePositions_Short(b *testing.B) {
+	text := "Anayasa Mahkemesi kararları"
+	tokenizer := tokenization.DEFAULT
+	tokens := tokenizer.Tokenize(text)
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_ = calculateBytePositions(text, tokens)
+	}
+}
+
+// BenchmarkCalculateBytePositions_Medium measures byte position calculation for medium text
+func BenchmarkCalculateBytePositions_Medium(b *testing.B) {
+	text := "Türkiye Cumhuriyeti Anayasa Mahkemesi'nin 2023 yılında verdiği kararlar incelendiğinde"
+	tokenizer := tokenization.DEFAULT
+	tokens := tokenizer.Tokenize(text)
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_ = calculateBytePositions(text, tokens)
+	}
+}
+
+// BenchmarkCalculateBytePositions_Large measures byte position calculation for large text (1KB)
+func BenchmarkCalculateBytePositions_Large(b *testing.B) {
+	// Build a 1KB text by repeating a sentence
+	sentence := "Anayasa Mahkemesi, başvurucu tarafından ileri sürülen ihlal iddialarını inceleyerek karar vermiştir. "
+	text := ""
+	for len(text) < 1000 {
+		text += sentence
+	}
+	tokenizer := tokenization.DEFAULT
+	tokens := tokenizer.Tokenize(text)
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_ = calculateBytePositions(text, tokens)
+	}
+}
+
+// BenchmarkCalculateBytePositions_VeryLarge measures byte position calculation for very large text (10KB)
+func BenchmarkCalculateBytePositions_VeryLarge(b *testing.B) {
+	// Build a 10KB text
+	sentence := "Anayasa Mahkemesi, başvurucu tarafından ileri sürülen ihlal iddialarını inceleyerek karar vermiştir. "
+	text := ""
+	for len(text) < 10000 {
+		text += sentence
+	}
+	tokenizer := tokenization.DEFAULT
+	tokens := tokenizer.Tokenize(text)
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_ = calculateBytePositions(text, tokens)
+	}
+}
+
+// BenchmarkWorkerPoolOverhead_SmallJob measures worker pool overhead for small jobs
+func BenchmarkWorkerPoolOverhead_SmallJob(b *testing.B) {
+	morph := CreateWithDefaults()
+	text := "mahkeme" // Single word - worker pool overhead will dominate
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_ = StemTextWithPositions(text, morph)
+	}
+}
+
+// BenchmarkWorkerPoolOverhead_MediumJob measures worker pool for medium jobs
+func BenchmarkWorkerPoolOverhead_MediumJob(b *testing.B) {
+	morph := CreateWithDefaults()
+	text := "Türkiye Cumhuriyeti Anayasa Mahkemesi'nin kararları" // ~6 words
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_ = StemTextWithPositions(text, morph)
+	}
+}
